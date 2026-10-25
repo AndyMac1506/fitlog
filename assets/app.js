@@ -1,0 +1,728 @@
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'fitlog:v1';
+  const SETTINGS_KEY = 'fitlog:settings:v1';
+
+  const FIELD_KEYS = [
+    'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
+    'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
+    'adherence', 'restingHR', 'bpSystolic', 'bpDiastolic', 'offPlanMeals', 'notes'
+  ];
+
+  /** @type {{ logs: Record<string, object>, version: number }} */
+  let store = { version: 1, logs: {} };
+  /** @type {{ waterGoal: number|null, stepsGoal: number|null }} */
+  let settings = { waterGoal: null, stepsGoal: null };
+
+  let currentDate = todayKey();
+  let calMonth = new Date();
+  let saveTimer = null;
+  let durationManual = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  // --- Date helpers ---
+  function todayKey() {
+    return formatDateKey(new Date());
+  }
+
+  function formatDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseDateKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function shiftDate(key, days) {
+    const d = parseDateKey(key);
+    d.setDate(d.getDate() + days);
+    return formatDateKey(d);
+  }
+
+  function formatDisplayDate(key) {
+    const d = parseDateKey(key);
+    const today = todayKey();
+    const yesterday = shiftDate(today, -1);
+    const tomorrow = shiftDate(today, 1);
+    const long = d.toLocaleDateString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+    if (key === today) return { label: 'Today', sub: long };
+    if (key === yesterday) return { label: 'Yesterday', sub: long };
+    if (key === tomorrow) return { label: 'Tomorrow', sub: long };
+    return {
+      label: d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+      sub: String(d.getFullYear())
+    };
+  }
+
+  // --- Persistence ---
+  function loadStore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          store = { version: 1, logs: parsed.logs || parsed || {} };
+          if (!parsed.logs && typeof parsed === 'object') {
+            // migrate flat accidental shape
+            const maybeLogs = {};
+            for (const k of Object.keys(parsed)) {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(k)) maybeLogs[k] = parsed[k];
+            }
+            if (Object.keys(maybeLogs).length) store.logs = maybeLogs;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load store', e);
+    }
+  }
+
+  function saveStore() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        settings = {
+          waterGoal: p.waterGoal != null && p.waterGoal !== '' ? Number(p.waterGoal) : null,
+          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load settings', e);
+    }
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function emptyLog() {
+    return {
+      bodyweight: '',
+      weighInTime: '',
+      water: '',
+      bedtime: '',
+      wakeTime: '',
+      sleepDuration: '',
+      sleepDurationManual: false,
+      sleepQuality: '',
+      steps: '',
+      cardio: '',
+      training: '',
+      desireToTrain: '',
+      energyInGym: '',
+      energyOutsideGym: '',
+      adherence: '',
+      restingHR: '',
+      bpSystolic: '',
+      bpDiastolic: '',
+      offPlanMeals: '',
+      notes: '',
+      updatedAt: null
+    };
+  }
+
+  function getLog(dateKey) {
+    return Object.assign(emptyLog(), store.logs[dateKey] || {});
+  }
+
+  function isLogEmpty(log) {
+    return FIELD_KEYS.every((k) => {
+      if (k === 'sleepDurationManual') return true;
+      const v = log[k];
+      return v === '' || v == null || v === false;
+    });
+  }
+
+  function fillScore(log) {
+    const tracked = [
+      'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
+      'steps', 'cardio', 'training', 'desireToTrain', 'energyInGym',
+      'energyOutsideGym', 'adherence', 'restingHR', 'bpSystolic', 'notes'
+    ];
+    let filled = 0;
+    for (const k of tracked) {
+      const v = log[k];
+      if (v !== '' && v != null) filled++;
+    }
+    return Math.round((filled / tracked.length) * 100);
+  }
+
+  // --- Sleep duration ---
+  function calcSleepHours(bedtime, wakeTime) {
+    if (!bedtime || !wakeTime) return null;
+    const [bh, bm] = bedtime.split(':').map(Number);
+    const [wh, wm] = wakeTime.split(':').map(Number);
+    let bedMins = bh * 60 + bm;
+    let wakeMins = wh * 60 + wm;
+    if (wakeMins <= bedMins) wakeMins += 24 * 60;
+    const mins = wakeMins - bedMins;
+    return Math.round((mins / 60) * 100) / 100;
+  }
+
+  // --- UI: scales ---
+  function buildScales() {
+    document.querySelectorAll('.scale').forEach((scale) => {
+      const name = scale.dataset.scale;
+      const hidden = scale.querySelector('input[type="hidden"]');
+      const btns = scale.querySelector('.scale-btns');
+      btns.innerHTML = '';
+      for (let i = 1; i <= 10; i++) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(i);
+        b.dataset.value = String(i);
+        b.setAttribute('aria-label', String(i));
+        b.addEventListener('click', () => {
+          const cur = hidden.value;
+          if (cur === String(i)) {
+            hidden.value = '';
+          } else {
+            hidden.value = String(i);
+          }
+          syncScaleUI(scale);
+          scheduleSave();
+        });
+        btns.appendChild(b);
+      }
+      syncScaleUI(scale);
+    });
+  }
+
+  function syncScaleUI(scale) {
+    const hidden = scale.querySelector('input[type="hidden"]');
+    const val = hidden.value;
+    scale.querySelectorAll('.scale-btns button').forEach((b) => {
+      const n = Number(b.dataset.value);
+      b.classList.remove('active', 'low', 'mid', 'high');
+      if (val !== '' && Number(val) === n) {
+        b.classList.add('active');
+        if (n <= 3) b.classList.add('low');
+        else if (n <= 6) b.classList.add('mid');
+        else b.classList.add('high');
+      }
+    });
+  }
+
+  // --- Form load/read ---
+  function loadFormForDate(dateKey) {
+    const log = getLog(dateKey);
+    durationManual = !!log.sleepDurationManual;
+
+    setVal('bodyweight', log.bodyweight);
+    setVal('weighInTime', log.weighInTime);
+    setVal('water', log.water);
+    setVal('bedtime', log.bedtime);
+    setVal('wakeTime', log.wakeTime);
+    setVal('sleepDuration', log.sleepDuration);
+    setVal('sleepQuality', log.sleepQuality);
+    setVal('steps', log.steps);
+    setVal('cardio', log.cardio);
+    setVal('desireToTrain', log.desireToTrain);
+    setVal('energyInGym', log.energyInGym);
+    setVal('energyOutsideGym', log.energyOutsideGym);
+    setVal('adherence', log.adherence);
+    setVal('restingHR', log.restingHR);
+    setVal('bpSystolic', log.bpSystolic);
+    setVal('bpDiastolic', log.bpDiastolic);
+    setVal('offPlanMeals', log.offPlanMeals);
+    setVal('notes', log.notes);
+
+    document.querySelectorAll('input[name="training"]').forEach((r) => {
+      r.checked = log.training === r.value;
+    });
+
+    document.querySelectorAll('.scale').forEach(syncScaleUI);
+    if (!durationManual) maybeAutoDuration();
+    updateDurationHint();
+    updateProgressBars();
+    updateDateNav();
+  }
+
+  function setVal(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = value == null ? '' : value;
+  }
+
+  function readForm() {
+    const trainingEl = document.querySelector('input[name="training"]:checked');
+    return {
+      bodyweight: document.getElementById('bodyweight').value,
+      weighInTime: document.getElementById('weighInTime').value,
+      water: document.getElementById('water').value,
+      bedtime: document.getElementById('bedtime').value,
+      wakeTime: document.getElementById('wakeTime').value,
+      sleepDuration: document.getElementById('sleepDuration').value,
+      sleepDurationManual: durationManual,
+      sleepQuality: document.getElementById('sleepQuality').value,
+      steps: document.getElementById('steps').value,
+      cardio: document.getElementById('cardio').value,
+      training: trainingEl ? trainingEl.value : '',
+      desireToTrain: document.getElementById('desireToTrain').value,
+      energyInGym: document.getElementById('energyInGym').value,
+      energyOutsideGym: document.getElementById('energyOutsideGym').value,
+      adherence: document.getElementById('adherence').value,
+      restingHR: document.getElementById('restingHR').value,
+      bpSystolic: document.getElementById('bpSystolic').value,
+      bpDiastolic: document.getElementById('bpDiastolic').value,
+      offPlanMeals: document.getElementById('offPlanMeals').value,
+      notes: document.getElementById('notes').value,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function scheduleSave() {
+    const status = document.getElementById('save-status');
+    status.textContent = 'Saving…';
+    status.className = 'save-status visible saving';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persistCurrent, 400);
+  }
+
+  function persistCurrent() {
+    const data = readForm();
+    if (isLogEmpty(data)) {
+      delete store.logs[currentDate];
+    } else {
+      store.logs[currentDate] = data;
+    }
+    saveStore();
+    const status = document.getElementById('save-status');
+    status.textContent = 'Saved';
+    status.className = 'save-status visible saved';
+    setTimeout(() => {
+      if (status.textContent === 'Saved') status.classList.remove('visible');
+    }, 1500);
+    updateProgressBars();
+  }
+
+  function updateDurationHint() {
+    const hint = document.getElementById('duration-hint');
+    hint.textContent = durationManual ? '(manual)' : '(auto)';
+  }
+
+  function maybeAutoDuration() {
+    if (durationManual) return;
+    const bed = document.getElementById('bedtime').value;
+    const wake = document.getElementById('wakeTime').value;
+    const hrs = calcSleepHours(bed, wake);
+    if (hrs != null) {
+      document.getElementById('sleepDuration').value = String(hrs);
+    } else {
+      document.getElementById('sleepDuration').value = '';
+    }
+    updateDurationHint();
+  }
+
+  function updateProgressBars() {
+    const water = Number(document.getElementById('water').value) || 0;
+    const steps = Number(document.getElementById('steps').value) || 0;
+    const wWrap = document.getElementById('water-progress');
+    const sWrap = document.getElementById('steps-progress');
+
+    if (settings.waterGoal && settings.waterGoal > 0) {
+      wWrap.hidden = false;
+      const pct = Math.min(100, Math.round((water / settings.waterGoal) * 100));
+      const fill = document.getElementById('water-fill');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('over', water >= settings.waterGoal);
+      document.getElementById('water-progress-text').textContent =
+        `${water || 0} / ${settings.waterGoal} oz`;
+    } else {
+      wWrap.hidden = true;
+    }
+
+    if (settings.stepsGoal && settings.stepsGoal > 0) {
+      sWrap.hidden = false;
+      const pct = Math.min(100, Math.round((steps / settings.stepsGoal) * 100));
+      const fill = document.getElementById('steps-fill');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('over', steps >= settings.stepsGoal);
+      document.getElementById('steps-progress-text').textContent =
+        `${formatNum(steps)} / ${formatNum(settings.stepsGoal)}`;
+    } else {
+      sWrap.hidden = true;
+    }
+  }
+
+  function formatNum(n) {
+    return Number(n).toLocaleString();
+  }
+
+  function updateDateNav() {
+    const { label, sub } = formatDisplayDate(currentDate);
+    document.getElementById('date-label').textContent = label;
+    document.getElementById('date-sub').textContent = sub;
+    const nextBtn = document.getElementById('btn-next-day');
+    // Allow going to tomorrow but not far future beyond tomorrow
+    const tomorrow = shiftDate(todayKey(), 1);
+    nextBtn.disabled = currentDate >= tomorrow;
+  }
+
+  function goToDate(dateKey) {
+    persistCurrent();
+    currentDate = dateKey;
+    loadFormForDate(currentDate);
+    closePanels();
+  }
+
+  // --- History / calendar ---
+  function openHistory() {
+    persistCurrent();
+    calMonth = parseDateKey(currentDate);
+    document.getElementById('history-panel').hidden = false;
+    renderCalendar();
+    renderHistoryList();
+  }
+
+  function openSettings() {
+    persistCurrent();
+    document.getElementById('setting-water-goal').value =
+      settings.waterGoal != null ? settings.waterGoal : '';
+    document.getElementById('setting-steps-goal').value =
+      settings.stepsGoal != null ? settings.stepsGoal : '';
+    document.getElementById('settings-panel').hidden = false;
+  }
+
+  function closePanels() {
+    document.getElementById('history-panel').hidden = true;
+    document.getElementById('settings-panel').hidden = true;
+  }
+
+  function renderCalendar() {
+    const y = calMonth.getFullYear();
+    const m = calMonth.getMonth();
+    document.getElementById('cal-title').textContent =
+      calMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const first = new Date(y, m, 1);
+    const startPad = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < startPad; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    const today = todayKey();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = formatDateKey(new Date(y, m, day));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      if (key === today) btn.classList.add('today');
+      if (key === currentDate) btn.classList.add('selected');
+      const log = store.logs[key];
+      if (log && !isLogEmpty(log)) {
+        btn.classList.add('has-data');
+        const score = fillScore(log);
+        if (score >= 70) btn.classList.add('has-full');
+      }
+      btn.innerHTML = `<span>${day}</span><span class="dot"></span>`;
+      btn.addEventListener('click', () => goToDate(key));
+      grid.appendChild(btn);
+    }
+  }
+
+  function renderHistoryList() {
+    const list = document.getElementById('history-list');
+    const keys = Object.keys(store.logs)
+      .filter((k) => store.logs[k] && !isLogEmpty(store.logs[k]))
+      .sort((a, b) => b.localeCompare(a))
+      .slice(0, 60);
+
+    if (!keys.length) {
+      list.innerHTML = '<p class="settings-note" style="padding:8px 4px">No logged days yet. Start with today.</p>';
+      return;
+    }
+
+    list.innerHTML = '';
+    keys.forEach((key) => {
+      const log = store.logs[key];
+      const score = fillScore(log);
+      const d = parseDateKey(key);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'history-item';
+      const bits = [];
+      if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
+      if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
+      if (log.training) bits.push(`train: ${log.training}`);
+      btn.innerHTML = `
+        <div>
+          <div class="hi-date">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          <div class="hi-meta">${bits.join(' · ') || 'Partial entry'}</div>
+        </div>
+        <span class="hi-fill">${score}%</span>
+      `;
+      btn.addEventListener('click', () => goToDate(key));
+      list.appendChild(btn);
+    });
+  }
+
+  // --- Export / Import ---
+  function exportJSON() {
+    persistCurrent();
+    const payload = {
+      app: 'FitLog',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings,
+      logs: store.logs
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fitlog-backup-${todayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup downloaded');
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const incomingLogs = (data && data.logs) ? data.logs : data;
+        if (!incomingLogs || typeof incomingLogs !== 'object') {
+          toast('Invalid backup file');
+          return;
+        }
+        const mode = confirm(
+          'OK = Merge with existing days (incoming overwrites same dates).\n\nCancel = Replace ALL local data with this file.'
+        );
+        // confirm: OK=true (merge), Cancel=false (replace)
+        // Actually users often confuse this. Better dual confirm:
+        // We'll interpret: first dialog asked merge vs replace via confirm.
+        // OK = merge, Cancel opens second confirm for replace.
+        if (mode) {
+          Object.assign(store.logs, incomingLogs);
+          if (data.settings) {
+            settings = {
+              waterGoal: data.settings.waterGoal ?? settings.waterGoal,
+              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal
+            };
+            saveSettings();
+          }
+          saveStore();
+          loadFormForDate(currentDate);
+          toast('Merged backup');
+        } else {
+          if (!confirm('Replace ALL FitLog data on this device with the file? This cannot be undone.')) {
+            toast('Import cancelled');
+            return;
+          }
+          store.logs = Object.assign({}, incomingLogs);
+          if (data.settings) {
+            settings = {
+              waterGoal: data.settings.waterGoal != null ? data.settings.waterGoal : null,
+              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null
+            };
+            saveSettings();
+          }
+          saveStore();
+          loadFormForDate(currentDate);
+          toast('Replaced with backup');
+        }
+      } catch (e) {
+        console.error(e);
+        toast('Could not read JSON');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.hidden = true; }, 2200);
+  }
+
+  // --- Events ---
+  function bindEvents() {
+    document.getElementById('btn-prev-day').addEventListener('click', () => {
+      goToDate(shiftDate(currentDate, -1));
+    });
+    document.getElementById('btn-next-day').addEventListener('click', () => {
+      goToDate(shiftDate(currentDate, 1));
+    });
+    document.getElementById('date-display').addEventListener('click', () => {
+      goToDate(todayKey());
+    });
+
+    document.getElementById('btn-history').addEventListener('click', openHistory);
+    document.getElementById('btn-close-history').addEventListener('click', closePanels);
+    document.getElementById('btn-settings').addEventListener('click', openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', closePanels);
+
+    document.getElementById('cal-prev').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() - 1);
+      renderCalendar();
+    });
+    document.getElementById('cal-next').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    document.querySelectorAll('[data-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btn.closest('.card').classList.toggle('collapsed');
+        btn.setAttribute('aria-expanded', btn.closest('.card').classList.contains('collapsed') ? 'false' : 'true');
+      });
+    });
+
+    const form = document.getElementById('log-form');
+    form.addEventListener('input', (e) => {
+      if (e.target.id === 'sleepDuration') {
+        durationManual = true;
+        updateDurationHint();
+      }
+      if (e.target.id === 'bedtime' || e.target.id === 'wakeTime') {
+        // If user changes bed/wake, resume auto unless they already overrode after
+        if (!durationManual) maybeAutoDuration();
+        else {
+          // If both change and duration was manual, still allow re-auto if duration empty
+          if (!document.getElementById('sleepDuration').value) {
+            durationManual = false;
+            maybeAutoDuration();
+          }
+        }
+      }
+      if (e.target.id === 'water' || e.target.id === 'steps') updateProgressBars();
+      scheduleSave();
+    });
+    form.addEventListener('change', (e) => {
+      if (e.target.name === 'training') scheduleSave();
+      if (e.target.id === 'bedtime' || e.target.id === 'wakeTime') {
+        if (!durationManual) maybeAutoDuration();
+        scheduleSave();
+      }
+    });
+
+    // Double-tap duration hint area to reset to auto
+    document.getElementById('duration-hint').addEventListener('click', () => {
+      durationManual = false;
+      maybeAutoDuration();
+      updateDurationHint();
+      scheduleSave();
+      toast('Duration set to auto');
+    });
+
+    document.getElementById('training-clear').addEventListener('click', () => {
+      document.querySelectorAll('input[name="training"]').forEach((r) => { r.checked = false; });
+      scheduleSave();
+    });
+
+    document.querySelectorAll('[data-stepper]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.stepper;
+        const delta = Number(btn.dataset.delta);
+        const input = document.getElementById(id);
+        const cur = input.value === '' ? 0 : Number(input.value);
+        const next = Math.max(0, cur + delta);
+        input.value = String(next);
+        scheduleSave();
+      });
+    });
+
+    document.querySelectorAll('.quick-add').forEach((wrap) => {
+      const target = wrap.dataset.target;
+      wrap.querySelectorAll('[data-add]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const add = Number(btn.dataset.add);
+          const input = document.getElementById(target);
+          const cur = input.value === '' ? 0 : Number(input.value);
+          input.value = String(Math.max(0, cur + add));
+          updateProgressBars();
+          scheduleSave();
+        });
+      });
+    });
+
+    document.getElementById('btn-save-settings').addEventListener('click', () => {
+      const w = document.getElementById('setting-water-goal').value;
+      const s = document.getElementById('setting-steps-goal').value;
+      settings.waterGoal = w === '' ? null : Number(w);
+      settings.stepsGoal = s === '' ? null : Number(s);
+      saveSettings();
+      updateProgressBars();
+      toast('Goals saved');
+    });
+
+    document.getElementById('btn-export').addEventListener('click', exportJSON);
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) importJSON(file);
+      e.target.value = '';
+    });
+
+    // Swipe between days on main view
+    const main = document.getElementById('main-view');
+    main.addEventListener('touchstart', (e) => {
+      if (!e.changedTouches[0]) return;
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    main.addEventListener('touchend', (e) => {
+      if (!e.changedTouches[0]) return;
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      const dy = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx > 0) goToDate(shiftDate(currentDate, -1));
+      else {
+        const tomorrow = shiftDate(todayKey(), 1);
+        const next = shiftDate(currentDate, 1);
+        if (next <= tomorrow) goToDate(next);
+      }
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistCurrent();
+    });
+    window.addEventListener('beforeunload', persistCurrent);
+  }
+
+  function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    // Only register when served over http(s)
+    if (location.protocol === 'file:') return;
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('SW registration failed', err);
+    });
+  }
+
+  function init() {
+    loadStore();
+    loadSettings();
+    buildScales();
+    bindEvents();
+    loadFormForDate(currentDate);
+    registerSW();
+  }
+
+  init();
+})();

@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#0f1419" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitLog" />
+  <meta name="description" content="Daily fitness and health tracker" />
+  <!-- Standalone: no external icons -->
+  <title>FitLog (standalone)</title>
+  <style>
+:root {
+  --bg: #0b0f14;
+  --bg-elevated: #121821;
+  --bg-card: #161d28;
+  --bg-input: #0e141c;
+  --border: #243041;
+  --border-strong: #334155;
+  --text: #e8eef7;
+  --text-muted: #8b9bb0;
+  --text-dim: #5c6b7e;
+  --accent: #3dd6c6;
+  --accent-dim: rgba(61, 214, 198, 0.15);
+  --accent-strong: #2bb8aa;
+  --danger: #f07178;
+  --warn: #e6c07b;
+  --good: #7fd99a;
+  --scale-low: #5c6b7e;
+  --scale-mid: #e6c07b;
+  --scale-high: #3dd6c6;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --tap: 44px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f3f5f8;
+    --bg-elevated: #ffffff;
+    --bg-card: #ffffff;
+    --bg-input: #f0f3f7;
+    --border: #d8dee8;
+    --border-strong: #b8c2d1;
+    --text: #101826;
+    --text-muted: #5a6a7e;
+    --text-dim: #8a97a8;
+    --accent: #0d9f91;
+    --accent-dim: rgba(13, 159, 145, 0.12);
+    --accent-strong: #0b8579;
+    --shadow: 0 8px 24px rgba(16, 24, 38, 0.08);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior-y: contain;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-bottom: calc(24px + var(--safe-bottom));
+  position: relative;
+}
+
+/* Top bar */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(10px + var(--safe-top)) 16px 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #5b8def);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.save-status {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  min-width: 3.5rem;
+  text-align: right;
+  transition: color 0.2s, opacity 0.2s;
+  opacity: 0;
+}
+.save-status.visible { opacity: 1; }
+.save-status.saved { color: var(--good); }
+.save-status.saving { color: var(--text-muted); }
+
+.icon-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.icon-btn:active { background: var(--accent-dim); }
+.icon-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+/* Date nav */
+.date-nav {
+  position: sticky;
+  top: calc(56px + var(--safe-top));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.date-display {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: center;
+  min-height: var(--tap);
+}
+.date-display:active { border-color: var(--accent); }
+
+.date-label {
+  display: block;
+  font-weight: 650;
+  font-size: 1rem;
+}
+.date-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.date-nav-btn { flex-shrink: 0; }
+
+/* Main */
+.main-view {
+  padding: 14px 14px 0;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+  min-height: var(--tap);
+}
+.card-header:active { background: var(--accent-dim); }
+.card-icon { font-size: 1.15rem; line-height: 1; }
+.card-title { flex: 1; }
+.chevron {
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+}
+.card.collapsed .chevron { transform: rotate(-90deg); }
+.card.collapsed .card-body { display: none; }
+
+.card-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+.hint {
+  font-weight: 500;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+input[type="number"],
+input[type="time"],
+input[type="text"],
+textarea {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 1.05rem;
+  min-height: var(--tap);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+textarea {
+  resize: vertical;
+  min-height: 110px;
+  line-height: 1.45;
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+/* Hide number spinners on some browsers for cleaner look */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
+.input-with-unit {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+.input-with-unit input { padding-right: 48px; }
+.unit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.bp-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bp-group input { text-align: center; }
+.bp-sep { color: var(--text-dim); font-weight: 700; }
+
+/* Progress */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+.progress-fill.over { background: linear-gradient(90deg, var(--good), #a8e6b8); }
+.progress-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+.quick-add {
+  display: flex;
+  gap: 8px;
+  margin-top: -6px;
+}
+.quick-add button {
+  flex: 1;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 650;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 10px 8px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.quick-add button:active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented label {
+  flex: 1;
+  text-align: center;
+  padding: 12px 8px;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 650;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+.segmented label:last-of-type { border-right: none; }
+.segmented input:checked + label {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.seg-clear {
+  appearance: none;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  width: 40px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.seg-clear:active { color: var(--danger); background: rgba(240, 113, 120, 0.12); }
+
+/* Scale 1-10 */
+.scale-btns {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+.scale-btns button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border-radius: 8px;
+  min-height: 40px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 0;
+}
+.scale-btns button:active { transform: scale(0.96); }
+.scale-btns button.active {
+  border-color: transparent;
+  color: #0b0f14;
+}
+.scale-btns button.active.low { background: var(--scale-low); color: var(--text); }
+.scale-btns button.active.mid { background: var(--scale-mid); color: #1a1408; }
+.scale-btns button.active.high { background: var(--scale-high); color: #062420; }
+
+/* Stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 200px;
+}
+.stepper input {
+  text-align: center;
+  flex: 1;
+}
+.stepper-btn {
+  appearance: none;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.stepper-btn:active { background: var(--accent-dim); border-color: var(--accent); }
+
+.footer-hint {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin: 8px 0 24px;
+}
+
+/* Panels */
+.panel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow-y: auto;
+  padding-bottom: calc(24px + var(--safe-bottom));
+  animation: slideUp 0.22s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
+.panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(12px + var(--safe-top)) 12px 12px 16px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+.panel-body { padding: 16px; }
+
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 4px;
+}
+.cal-title {
+  font-weight: 650;
+  font-size: 1rem;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px 12px 0;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px 12px 16px;
+}
+
+.cal-day {
+  appearance: none;
+  border: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  aspect-ratio: 1;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.cal-day.empty {
+  background: transparent;
+  border-color: transparent;
+  pointer-events: none;
+}
+.cal-day.today { border-color: var(--accent); }
+.cal-day.selected {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cal-day .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.cal-day.has-data .dot { background: var(--accent); }
+.cal-day.has-full .dot { background: var(--good); box-shadow: 0 0 0 2px rgba(127, 217, 154, 0.25); }
+
+.history-list {
+  padding: 0 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-item {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.history-item:active { border-color: var(--accent); }
+.history-item .hi-date { font-weight: 650; }
+.history-item .hi-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.history-item .hi-fill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.settings-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-block h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.settings-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+.btn:active { background: var(--accent-dim); }
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #062420;
+}
+.btn.primary:active { filter: brightness(0.95); }
+.btn.danger {
+  color: var(--danger);
+  border-color: rgba(240, 113, 120, 0.4);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  max-width: calc(100% - 32px);
+  text-align: center;
+  animation: toastIn 0.2s ease;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (min-width: 481px) {
+  #app, .panel {
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <h1>FitLog</h1>
+      </div>
+      <div class="top-actions">
+        <span id="save-status" class="save-status" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-settings" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="date-nav" aria-label="Date navigation">
+      <button type="button" class="icon-btn date-nav-btn" id="btn-prev-day" aria-label="Previous day">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button type="button" class="date-display" id="date-display" aria-label="Jump to today">
+        <span id="date-label" class="date-label">Today</span>
+        <span id="date-sub" class="date-sub"></span>
+      </button>
+      <button type="button" class="icon-btn date-nav-btn" id="btn-next-day" aria-label="Next day">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </nav>
+
+    <main id="main-view" class="main-view">
+      <form id="log-form" autocomplete="off" novalidate>
+        <!-- Body -->
+        <section class="card" data-section="body">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">⚖️</span>
+            <span class="card-title">Body</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Bodyweight</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="0.1" min="0" name="bodyweight" id="bodyweight" placeholder="—" />
+                  <span class="unit">lbs</span>
+                </div>
+              </label>
+              <label class="field">
+                <span class="field-label">Weigh-in time</span>
+                <input type="time" name="weighInTime" id="weighInTime" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Resting HR</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="numeric" step="1" min="0" max="250" name="restingHR" id="restingHR" placeholder="—" />
+                  <span class="unit">bpm</span>
+                </div>
+              </label>
+              <div class="field">
+                <span class="field-label">Blood pressure</span>
+                <div class="bp-group">
+                  <input type="number" inputmode="numeric" step="1" min="0" max="300" name="bpSystolic" id="bpSystolic" placeholder="Sys" aria-label="Systolic" />
+                  <span class="bp-sep">/</span>
+                  <input type="number" inputmode="numeric" step="1" min="0" max="200" name="bpDiastolic" id="bpDiastolic" placeholder="Dia" aria-label="Diastolic" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Hydration & Movement -->
+        <section class="card" data-section="movement">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">💧</span>
+            <span class="card-title">Hydration &amp; Movement</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <label class="field">
+              <span class="field-label">Water intake</span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="decimal" step="1" min="0" name="water" id="water" placeholder="—" />
+                <span class="unit">oz</span>
+              </div>
+              <div class="progress-wrap" id="water-progress" hidden>
+                <div class="progress-bar"><div class="progress-fill" id="water-fill"></div></div>
+                <span class="progress-text" id="water-progress-text"></span>
+              </div>
+            </label>
+            <div class="quick-add" id="water-quick" data-target="water" data-step="8">
+              <button type="button" data-add="-8">−8</button>
+              <button type="button" data-add="8">+8 oz</button>
+              <button type="button" data-add="16">+16</button>
+            </div>
+            <label class="field">
+              <span class="field-label">Steps</span>
+              <input type="number" inputmode="numeric" step="1" min="0" name="steps" id="steps" placeholder="—" />
+              <div class="progress-wrap" id="steps-progress" hidden>
+                <div class="progress-bar"><div class="progress-fill" id="steps-fill"></div></div>
+                <span class="progress-text" id="steps-progress-text"></span>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Cardio</span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="numeric" step="1" min="0" name="cardio" id="cardio" placeholder="—" />
+                <span class="unit">min</span>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Sleep -->
+        <section class="card" data-section="sleep">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">😴</span>
+            <span class="card-title">Sleep</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Bedtime</span>
+                <input type="time" name="bedtime" id="bedtime" />
+              </label>
+              <label class="field">
+                <span class="field-label">Wake time</span>
+                <input type="time" name="wakeTime" id="wakeTime" />
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Duration <span class="hint" id="duration-hint">(auto)</span></span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="decimal" step="0.25" min="0" max="24" name="sleepDuration" id="sleepDuration" placeholder="—" />
+                <span class="unit">hrs</span>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Sleep quality</span>
+              <div class="scale" data-scale="sleepQuality">
+                <input type="hidden" name="sleepQuality" id="sleepQuality" value="" />
+                <div class="scale-btns" role="group" aria-label="Sleep quality 1 to 10"></div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Training -->
+        <section class="card" data-section="training">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">💪</span>
+            <span class="card-title">Training</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="field">
+              <span class="field-label">Training today</span>
+              <div class="segmented" role="group" aria-label="Training">
+                <input type="radio" name="training" id="training-yes" value="yes" />
+                <label for="training-yes">Yes</label>
+                <input type="radio" name="training" id="training-no" value="no" />
+                <label for="training-no">No</label>
+                <input type="radio" name="training" id="training-rest" value="rest" />
+                <label for="training-rest">Rest</label>
+                <button type="button" class="seg-clear" id="training-clear" aria-label="Clear training" title="Clear">×</button>
+              </div>
+            </div>
+            <label class="field">
+              <span class="field-label">Desire to train</span>
+              <div class="scale" data-scale="desireToTrain">
+                <input type="hidden" name="desireToTrain" id="desireToTrain" value="" />
+                <div class="scale-btns" role="group" aria-label="Desire to train 1 to 10"></div>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Energy in gym</span>
+              <div class="scale" data-scale="energyInGym">
+                <input type="hidden" name="energyInGym" id="energyInGym" value="" />
+                <div class="scale-btns" role="group" aria-label="Energy in gym 1 to 10"></div>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Energy outside gym</span>
+              <div class="scale" data-scale="energyOutsideGym">
+                <input type="hidden" name="energyOutsideGym" id="energyOutsideGym" value="" />
+                <div class="scale-btns" role="group" aria-label="Energy outside gym 1 to 10"></div>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Adherence</span>
+              <div class="scale" data-scale="adherence">
+                <input type="hidden" name="adherence" id="adherence" value="" />
+                <div class="scale-btns" role="group" aria-label="Adherence 1 to 10"></div>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Off-plan meals</span>
+              <div class="stepper">
+                <button type="button" class="stepper-btn" data-stepper="offPlanMeals" data-delta="-1" aria-label="Decrease">−</button>
+                <input type="number" inputmode="numeric" step="1" min="0" name="offPlanMeals" id="offPlanMeals" value="" placeholder="0" />
+                <button type="button" class="stepper-btn" data-stepper="offPlanMeals" data-delta="1" aria-label="Increase">+</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Notes -->
+        <section class="card" data-section="notes">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">📝</span>
+            <span class="card-title">Daily notes</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <label class="field">
+              <textarea name="notes" id="notes" rows="4" placeholder="How did today feel? Wins, sore spots, anything worth remembering…"></textarea>
+            </label>
+          </div>
+        </section>
+      </form>
+      <p class="footer-hint">Auto-saves locally on this device</p>
+    </main>
+
+    <!-- History panel -->
+    <aside id="history-panel" class="panel" hidden aria-label="History">
+      <div class="panel-header">
+        <h2>History</h2>
+        <button type="button" class="icon-btn" id="btn-close-history" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="calendar-controls">
+        <button type="button" class="icon-btn" id="cal-prev" aria-label="Previous month">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span id="cal-title" class="cal-title"></span>
+        <button type="button" class="icon-btn" id="cal-next" aria-label="Next month">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="cal-weekdays" aria-hidden="true">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div id="cal-grid" class="cal-grid"></div>
+      <div id="history-list" class="history-list"></div>
+    </aside>
+
+    <!-- Settings panel -->
+    <aside id="settings-panel" class="panel" hidden aria-label="Settings">
+      <div class="panel-header">
+        <h2>Settings</h2>
+        <button type="button" class="icon-btn" id="btn-close-settings" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="panel-body">
+        <section class="settings-block">
+          <h3>Daily goals</h3>
+          <label class="field">
+            <span class="field-label">Water goal (oz)</span>
+            <input type="number" inputmode="numeric" min="0" id="setting-water-goal" placeholder="e.g. 100" />
+          </label>
+          <label class="field">
+            <span class="field-label">Steps goal</span>
+            <input type="number" inputmode="numeric" min="0" id="setting-steps-goal" placeholder="e.g. 10000" />
+          </label>
+          <button type="button" class="btn primary" id="btn-save-settings">Save goals</button>
+        </section>
+        <section class="settings-block">
+          <h3>Data</h3>
+          <button type="button" class="btn" id="btn-export">Export JSON backup</button>
+          <button type="button" class="btn" id="btn-import">Import JSON…</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+          <p class="settings-note">Import asks whether to merge with existing days or replace all data.</p>
+        </section>
+        <section class="settings-block">
+          <h3>About</h3>
+          <p class="settings-note">FitLog stores everything in this browser’s localStorage. Add to Home Screen from Safari for an app-like icon. Works offline after first load.</p>
+        </section>
+      </div>
+    </aside>
+
+    <div id="toast" class="toast" hidden role="status"></div>
+  </div>
+  <script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'fitlog:v1';
+  const SETTINGS_KEY = 'fitlog:settings:v1';
+
+  const FIELD_KEYS = [
+    'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
+    'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
+    'adherence', 'restingHR', 'bpSystolic', 'bpDiastolic', 'offPlanMeals', 'notes'
+  ];
+
+  /** @type {{ logs: Record<string, object>, version: number }} */
+  let store = { version: 1, logs: {} };
+  /** @type {{ waterGoal: number|null, stepsGoal: number|null }} */
+  let settings = { waterGoal: null, stepsGoal: null };
+
+  let currentDate = todayKey();
+  let calMonth = new Date();
+  let saveTimer = null;
+  let durationManual = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  // --- Date helpers ---
+  function todayKey() {
+    return formatDateKey(new Date());
+  }
+
+  function formatDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseDateKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function shiftDate(key, days) {
+    const d = parseDateKey(key);
+    d.setDate(d.getDate() + days);
+    return formatDateKey(d);
+  }
+
+  function formatDisplayDate(key) {
+    const d = parseDateKey(key);
+    const today = todayKey();
+    const yesterday = shiftDate(today, -1);
+    const tomorrow = shiftDate(today, 1);
+    const long = d.toLocaleDateString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+    if (key === today) return { label: 'Today', sub: long };
+    if (key === yesterday) return { label: 'Yesterday', sub: long };
+    if (key === tomorrow) return { label: 'Tomorrow', sub: long };
+    return {
+      label: d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+      sub: String(d.getFullYear())
+    };
+  }
+
+  // --- Persistence ---
+  function loadStore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          store = { version: 1, logs: parsed.logs || parsed || {} };
+          if (!parsed.logs && typeof parsed === 'object') {
+            // migrate flat accidental shape
+            const maybeLogs = {};
+            for (const k of Object.keys(parsed)) {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(k)) maybeLogs[k] = parsed[k];
+            }
+            if (Object.keys(maybeLogs).length) store.logs = maybeLogs;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load store', e);
+    }
+  }
+
+  function saveStore() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        settings = {
+          waterGoal: p.waterGoal != null && p.waterGoal !== '' ? Number(p.waterGoal) : null,
+          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load settings', e);
+    }
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function emptyLog() {
+    return {
+      bodyweight: '',
+      weighInTime: '',
+      water: '',
+      bedtime: '',
+      wakeTime: '',
+      sleepDuration: '',
+      sleepDurationManual: false,
+      sleepQuality: '',
+      steps: '',
+      cardio: '',
+      training: '',
+      desireToTrain: '',
+      energyInGym: '',
+      energyOutsideGym: '',
+      adherence: '',
+      restingHR: '',
+      bpSystolic: '',
+      bpDiastolic: '',
+      offPlanMeals: '',
+      notes: '',
+      updatedAt: null
+    };
+  }
+
+  function getLog(dateKey) {
+    return Object.assign(emptyLog(), store.logs[dateKey] || {});
+  }
+
+  function isLogEmpty(log) {
+    return FIELD_KEYS.every((k) => {
+      if (k === 'sleepDurationManual') return true;
+      const v = log[k];
+      return v === '' || v == null || v === false;
+    });
+  }
+
+  function fillScore(log) {
+    const tracked = [
+      'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
+      'steps', 'cardio', 'training', 'desireToTrain', 'energyInGym',
+      'energyOutsideGym', 'adherence', 'restingHR', 'bpSystolic', 'notes'
+    ];
+    let filled = 0;
+    for (const k of tracked) {
+      const v = log[k];
+      if (v !== '' && v != null) filled++;
+    }
+    return Math.round((filled / tracked.length) * 100);
+  }
+
+  // --- Sleep duration ---
+  function calcSleepHours(bedtime, wakeTime) {
+    if (!bedtime || !wakeTime) return null;
+    const [bh, bm] = bedtime.split(':').map(Number);
+    const [wh, wm] = wakeTime.split(':').map(Number);
+    let bedMins = bh * 60 + bm;
+    let wakeMins = wh * 60 + wm;
+    if (wakeMins <= bedMins) wakeMins += 24 * 60;
+    const mins = wakeMins - bedMins;
+    return Math.round((mins / 60) * 100) / 100;
+  }
+
+  // --- UI: scales ---
+  function buildScales() {
+    document.querySelectorAll('.scale').forEach((scale) => {
+      const name = scale.dataset.scale;
+      const hidden = scale.querySelector('input[type="hidden"]');
+      const btns = scale.querySelector('.scale-btns');
+      btns.innerHTML = '';
+      for (let i = 1; i <= 10; i++) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(i);
+        b.dataset.value = String(i);
+        b.setAttribute('aria-label', String(i));
+        b.addEventListener('click', () => {
+          const cur = hidden.value;
+          if (cur === String(i)) {
+            hidden.value = '';
+          } else {
+            hidden.value = String(i);
+          }
+          syncScaleUI(scale);
+          scheduleSave();
+        });
+        btns.appendChild(b);
+      }
+      syncScaleUI(scale);
+    });
+  }
+
+  function syncScaleUI(scale) {
+    const hidden = scale.querySelector('input[type="hidden"]');
+    const val = hidden.value;
+    scale.querySelectorAll('.scale-btns button').forEach((b) => {
+      const n = Number(b.dataset.value);
+      b.classList.remove('active', 'low', 'mid', 'high');
+      if (val !== '' && Number(val) === n) {
+        b.classList.add('active');
+        if (n <= 3) b.classList.add('low');
+        else if (n <= 6) b.classList.add('mid');
+        else b.classList.add('high');
+      }
+    });
+  }
+
+  // --- Form load/read ---
+  function loadFormForDate(dateKey) {
+    const log = getLog(dateKey);
+    durationManual = !!log.sleepDurationManual;
+
+    setVal('bodyweight', log.bodyweight);
+    setVal('weighInTime', log.weighInTime);
+    setVal('water', log.water);
+    setVal('bedtime', log.bedtime);
+    setVal('wakeTime', log.wakeTime);
+    setVal('sleepDuration', log.sleepDuration);
+    setVal('sleepQuality', log.sleepQuality);
+    setVal('steps', log.steps);
+    setVal('cardio', log.cardio);
+    setVal('desireToTrain', log.desireToTrain);
+    setVal('energyInGym', log.energyInGym);
+    setVal('energyOutsideGym', log.energyOutsideGym);
+    setVal('adherence', log.adherence);
+    setVal('restingHR', log.restingHR);
+    setVal('bpSystolic', log.bpSystolic);
+    setVal('bpDiastolic', log.bpDiastolic);
+    setVal('offPlanMeals', log.offPlanMeals);
+    setVal('notes', log.notes);
+
+    document.querySelectorAll('input[name="training"]').forEach((r) => {
+      r.checked = log.training === r.value;
+    });
+
+    document.querySelectorAll('.scale').forEach(syncScaleUI);
+    if (!durationManual) maybeAutoDuration();
+    updateDurationHint();
+    updateProgressBars();
+    updateDateNav();
+  }
+
+  function setVal(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = value == null ? '' : value;
+  }
+
+  function readForm() {
+    const trainingEl = document.querySelector('input[name="training"]:checked');
+    return {
+      bodyweight: document.getElementById('bodyweight').value,
+      weighInTime: document.getElementById('weighInTime').value,
+      water: document.getElementById('water').value,
+      bedtime: document.getElementById('bedtime').value,
+      wakeTime: document.getElementById('wakeTime').value,
+      sleepDuration: document.getElementById('sleepDuration').value,
+      sleepDurationManual: durationManual,
+      sleepQuality: document.getElementById('sleepQuality').value,
+      steps: document.getElementById('steps').value,
+      cardio: document.getElementById('cardio').value,
+      training: trainingEl ? trainingEl.value : '',
+      desireToTrain: document.getElementById('desireToTrain').value,
+      energyInGym: document.getElementById('energyInGym').value,
+      energyOutsideGym: document.getElementById('energyOutsideGym').value,
+      adherence: document.getElementById('adherence').value,
+      restingHR: document.getElementById('restingHR').value,
+      bpSystolic: document.getElementById('bpSystolic').value,
+      bpDiastolic: document.getElementById('bpDiastolic').value,
+      offPlanMeals: document.getElementById('offPlanMeals').value,
+      notes: document.getElementById('notes').value,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function scheduleSave() {
+    const status = document.getElementById('save-status');
+    status.textContent = 'Saving…';
+    status.className = 'save-status visible saving';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persistCurrent, 400);
+  }
+
+  function persistCurrent() {
+    const data = readForm();
+    if (isLogEmpty(data)) {
+      delete store.logs[currentDate];
+    } else {
+      store.logs[currentDate] = data;
+    }
+    saveStore();
+    const status = document.getElementById('save-status');
+    status.textContent = 'Saved';
+    status.className = 'save-status visible saved';
+    setTimeout(() => {
+      if (status.textContent === 'Saved') status.classList.remove('visible');
+    }, 1500);
+    updateProgressBars();
+  }
+
+  function updateDurationHint() {
+    const hint = document.getElementById('duration-hint');
+    hint.textContent = durationManual ? '(manual)' : '(auto)';
+  }
+
+  function maybeAutoDuration() {
+    if (durationManual) return;
+    const bed = document.getElementById('bedtime').value;
+    const wake = document.getElementById('wakeTime').value;
+    const hrs = calcSleepHours(bed, wake);
+    if (hrs != null) {
+      document.getElementById('sleepDuration').value = String(hrs);
+    } else {
+      document.getElementById('sleepDuration').value = '';
+    }
+    updateDurationHint();
+  }
+
+  function updateProgressBars() {
+    const water = Number(document.getElementById('water').value) || 0;
+    const steps = Number(document.getElementById('steps').value) || 0;
+    const wWrap = document.getElementById('water-progress');
+    const sWrap = document.getElementById('steps-progress');
+
+    if (settings.waterGoal && settings.waterGoal > 0) {
+      wWrap.hidden = false;
+      const pct = Math.min(100, Math.round((water / settings.waterGoal) * 100));
+      const fill = document.getElementById('water-fill');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('over', water >= settings.waterGoal);
+      document.getElementById('water-progress-text').textContent =
+        `${water || 0} / ${settings.waterGoal} oz`;
+    } else {
+      wWrap.hidden = true;
+    }
+
+    if (settings.stepsGoal && settings.stepsGoal > 0) {
+      sWrap.hidden = false;
+      const pct = Math.min(100, Math.round((steps / settings.stepsGoal) * 100));
+      const fill = document.getElementById('steps-fill');
+      fill.style.width = pct + '%';
+      fill.classList.toggle('over', steps >= settings.stepsGoal);
+      document.getElementById('steps-progress-text').textContent =
+        `${formatNum(steps)} / ${formatNum(settings.stepsGoal)}`;
+    } else {
+      sWrap.hidden = true;
+    }
+  }
+
+  function formatNum(n) {
+    return Number(n).toLocaleString();
+  }
+
+  function updateDateNav() {
+    const { label, sub } = formatDisplayDate(currentDate);
+    document.getElementById('date-label').textContent = label;
+    document.getElementById('date-sub').textContent = sub;
+    const nextBtn = document.getElementById('btn-next-day');
+    // Allow going to tomorrow but not far future beyond tomorrow
+    const tomorrow = shiftDate(todayKey(), 1);
+    nextBtn.disabled = currentDate >= tomorrow;
+  }
+
+  function goToDate(dateKey) {
+    persistCurrent();
+    currentDate = dateKey;
+    loadFormForDate(currentDate);
+    closePanels();
+  }
+
+  // --- History / calendar ---
+  function openHistory() {
+    persistCurrent();
+    calMonth = parseDateKey(currentDate);
+    document.getElementById('history-panel').hidden = false;
+    renderCalendar();
+    renderHistoryList();
+  }
+
+  function openSettings() {
+    persistCurrent();
+    document.getElementById('setting-water-goal').value =
+      settings.waterGoal != null ? settings.waterGoal : '';
+    document.getElementById('setting-steps-goal').value =
+      settings.stepsGoal != null ? settings.stepsGoal : '';
+    document.getElementById('settings-panel').hidden = false;
+  }
+
+  function closePanels() {
+    document.getElementById('history-panel').hidden = true;
+    document.getElementById('settings-panel').hidden = true;
+  }
+
+  function renderCalendar() {
+    const y = calMonth.getFullYear();
+    const m = calMonth.getMonth();
+    document.getElementById('cal-title').textContent =
+      calMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const first = new Date(y, m, 1);
+    const startPad = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < startPad; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    const today = todayKey();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = formatDateKey(new Date(y, m, day));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      if (key === today) btn.classList.add('today');
+      if (key === currentDate) btn.classList.add('selected');
+      const log = store.logs[key];
+      if (log && !isLogEmpty(log)) {
+        btn.classList.add('has-data');
+        const score = fillScore(log);
+        if (score >= 70) btn.classList.add('has-full');
+      }
+      btn.innerHTML = `<span>${day}</span><span class="dot"></span>`;
+      btn.addEventListener('click', () => goToDate(key));
+      grid.appendChild(btn);
+    }
+  }
+
+  function renderHistoryList() {
+    const list = document.getElementById('history-list');
+    const keys = Object.keys(store.logs)
+      .filter((k) => store.logs[k] && !isLogEmpty(store.logs[k]))
+      .sort((a, b) => b.localeCompare(a))
+      .slice(0, 60);
+
+    if (!keys.length) {
+      list.innerHTML = '<p class="settings-note" style="padding:8px 4px">No logged days yet. Start with today.</p>';
+      return;
+    }
+
+    list.innerHTML = '';
+    keys.forEach((key) => {
+      const log = store.logs[key];
+      const score = fillScore(log);
+      const d = parseDateKey(key);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'history-item';
+      const bits = [];
+      if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
+      if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
+      if (log.training) bits.push(`train: ${log.training}`);
+      btn.innerHTML = `
+        <div>
+          <div class="hi-date">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          <div class="hi-meta">${bits.join(' · ') || 'Partial entry'}</div>
+        </div>
+        <span class="hi-fill">${score}%</span>
+      `;
+      btn.addEventListener('click', () => goToDate(key));
+      list.appendChild(btn);
+    });
+  }
+
+  // --- Export / Import ---
+  function exportJSON() {
+    persistCurrent();
+    const payload = {
+      app: 'FitLog',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings,
+      logs: store.logs
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fitlog-backup-${todayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup downloaded');
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const incomingLogs = (data && data.logs) ? data.logs : data;
+        if (!incomingLogs || typeof incomingLogs !== 'object') {
+          toast('Invalid backup file');
+          return;
+        }
+        const mode = confirm(
+          'OK = Merge with existing days (incoming overwrites same dates).\n\nCancel = Replace ALL local data with this file.'
+        );
+        // confirm: OK=true (merge), Cancel=false (replace)
+        // Actually users often confuse this. Better dual confirm:
+        // We'll interpret: first dialog asked merge vs replace via confirm.
+        // OK = merge, Cancel opens second confirm for replace.
+        if (mode) {
+          Object.assign(store.logs, incomingLogs);
+          if (data.settings) {
+            settings = {
+              waterGoal: data.settings.waterGoal ?? settings.waterGoal,
+              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal
+            };
+            saveSettings();
+          }
+          saveStore();
+          loadFormForDate(currentDate);
+          toast('Merged backup');
+        } else {
+          if (!confirm('Replace ALL FitLog data on this device with the file? This cannot be undone.')) {
+            toast('Import cancelled');
+            return;
+          }
+          store.logs = Object.assign({}, incomingLogs);
+          if (data.settings) {
+            settings = {
+              waterGoal: data.settings.waterGoal != null ? data.settings.waterGoal : null,
+              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null
+            };
+            saveSettings();
+          }
+          saveStore();
+          loadFormForDate(currentDate);
+          toast('Replaced with backup');
+        }
+      } catch (e) {
+        console.error(e);
+        toast('Could not read JSON');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.hidden = true; }, 2200);
+  }
+
+  // --- Events ---
+  function bindEvents() {
+    document.getElementById('btn-prev-day').addEventListener('click', () => {
+      goToDate(shiftDate(currentDate, -1));
+    });
+    document.getElementById('btn-next-day').addEventListener('click', () => {
+      goToDate(shiftDate(currentDate, 1));
+    });
+    document.getElementById('date-display').addEventListener('click', () => {
+      goToDate(todayKey());
+    });
+
+    document.getElementById('btn-history').addEventListener('click', openHistory);
+    document.getElementById('btn-close-history').addEventListener('click', closePanels);
+    document.getElementById('btn-settings').addEventListener('click', openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', closePanels);
+
+    document.getElementById('cal-prev').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() - 1);
+      renderCalendar();
+    });
+    document.getElementById('cal-next').addEventListener('click', () => {
+      calMonth.setMonth(calMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    document.querySelectorAll('[data-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btn.closest('.card').classList.toggle('collapsed');
+        btn.setAttribute('aria-expanded', btn.closest('.card').classList.contains('collapsed') ? 'false' : 'true');
+      });
+    });
+
+    const form = document.getElementById('log-form');
+    form.addEventListener('input', (e) => {
+      if (e.target.id === 'sleepDuration') {
+        durationManual = true;
+        updateDurationHint();
+      }
+      if (e.target.id === 'bedtime' || e.target.id === 'wakeTime') {
+        // If user changes bed/wake, resume auto unless they already overrode after
+        if (!durationManual) maybeAutoDuration();
+        else {
+          // If both change and duration was manual, still allow re-auto if duration empty
+          if (!document.getElementById('sleepDuration').value) {
+            durationManual = false;
+            maybeAutoDuration();
+          }
+        }
+      }
+      if (e.target.id === 'water' || e.target.id === 'steps') updateProgressBars();
+      scheduleSave();
+    });
+    form.addEventListener('change', (e) => {
+      if (e.target.name === 'training') scheduleSave();
+      if (e.target.id === 'bedtime' || e.target.id === 'wakeTime') {
+        if (!durationManual) maybeAutoDuration();
+        scheduleSave();
+      }
+    });
+
+    // Double-tap duration hint area to reset to auto
+    document.getElementById('duration-hint').addEventListener('click', () => {
+      durationManual = false;
+      maybeAutoDuration();
+      updateDurationHint();
+      scheduleSave();
+      toast('Duration set to auto');
+    });
+
+    document.getElementById('training-clear').addEventListener('click', () => {
+      document.querySelectorAll('input[name="training"]').forEach((r) => { r.checked = false; });
+      scheduleSave();
+    });
+
+    document.querySelectorAll('[data-stepper]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.stepper;
+        const delta = Number(btn.dataset.delta);
+        const input = document.getElementById(id);
+        const cur = input.value === '' ? 0 : Number(input.value);
+        const next = Math.max(0, cur + delta);
+        input.value = String(next);
+        scheduleSave();
+      });
+    });
+
+    document.querySelectorAll('.quick-add').forEach((wrap) => {
+      const target = wrap.dataset.target;
+      wrap.querySelectorAll('[data-add]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const add = Number(btn.dataset.add);
+          const input = document.getElementById(target);
+          const cur = input.value === '' ? 0 : Number(input.value);
+          input.value = String(Math.max(0, cur + add));
+          updateProgressBars();
+          scheduleSave();
+        });
+      });
+    });
+
+    document.getElementById('btn-save-settings').addEventListener('click', () => {
+      const w = document.getElementById('setting-water-goal').value;
+      const s = document.getElementById('setting-steps-goal').value;
+      settings.waterGoal = w === '' ? null : Number(w);
+      settings.stepsGoal = s === '' ? null : Number(s);
+      saveSettings();
+      updateProgressBars();
+      toast('Goals saved');
+    });
+
+    document.getElementById('btn-export').addEventListener('click', exportJSON);
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) importJSON(file);
+      e.target.value = '';
+    });
+
+    // Swipe between days on main view
+    const main = document.getElementById('main-view');
+    main.addEventListener('touchstart', (e) => {
+      if (!e.changedTouches[0]) return;
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    main.addEventListener('touchend', (e) => {
+      if (!e.changedTouches[0]) return;
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      const dy = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx > 0) goToDate(shiftDate(currentDate, -1));
+      else {
+        const tomorrow = shiftDate(todayKey(), 1);
+        const next = shiftDate(currentDate, 1);
+        if (next <= tomorrow) goToDate(next);
+      }
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistCurrent();
+    });
+    window.addEventListener('beforeunload', persistCurrent);
+  }
+
+  function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    // Only register when served over http(s)
+    if (location.protocol === 'file:') return;
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('SW registration failed', err);
+    });
+  }
+
+  function init() {
+    loadStore();
+    loadSettings();
+    buildScales();
+    bindEvents();
+    loadFormForDate(currentDate);
+    registerSW();
+  }
+
+  init();
+})();
+
+  </script>
+</body>
+</html>

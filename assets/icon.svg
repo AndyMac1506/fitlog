@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FitLog">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3dd6c6"/>
+      <stop offset="100%" stop-color="#5b8def"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="#0b0f14"/>
+  <rect x="48" y="48" width="416" height="416" rx="88" fill="url(#g)"/>
+  <path d="M160 280c40-88 72-132 96-132s56 44 96 132" fill="none" stroke="#0b0f14" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="256" cy="318" r="28" fill="#0b0f14"/>
+  <path d="M196 200h120" stroke="#0b0f14" stroke-width="28" stroke-linecap="round" opacity="0.35"/>
+</svg>
