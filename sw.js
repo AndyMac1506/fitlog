@@ -1,11 +1,12 @@
 /* FitLog service worker — offline shell */
-const CACHE = 'fitlog-v4';
+const CACHE = 'fitlog-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './assets/styles.css',
   './assets/app.js',
+  './assets/photos.js',
   './assets/icon.svg',
   './assets/icon-180.png',
   './assets/icon-192.png',

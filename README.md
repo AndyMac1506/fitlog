@@ -1,27 +1,31 @@
 # FitLog — Daily Fitness & Health Tracker
 
-A polished, mobile-first Progressive Web App for daily logging on iPhone (Safari → Add to Home Screen). Works offline after the first load. All data stays in the browser’s `localStorage`, with JSON export/import for backups.
+A polished, mobile-first Progressive Web App for daily logging on iPhone (Safari → Add to Home Screen). Works offline after the first load. Daily logs stay in the browser’s `localStorage`; **progress photos** use **IndexedDB**. JSON export/import covers logs (not photo blobs).
+
+**Live:** https://andymac1506.github.io/fitlog/
 
 ## Open on iPhone
 
-### Option A — Local network (same Wi‑Fi as this machine)
+### Option A — GitHub Pages (recommended)
 
-1. Start the static server (from this folder):
+1. Open https://andymac1506.github.io/fitlog/ in Safari  
+2. Share → **Add to Home Screen** → Add  
+3. Launch **FitLog** from your home screen  
 
-   ```bash
-   cd /workspace/fitness-tracker
-   python3 -m http.server 8787
-   ```
+Hard-refresh or reopen the Home Screen app after updates so the new service worker cache loads.
 
-2. On your iPhone, open Safari and go to `http://<this-machine-ip>:8787`
-3. Tap the Share button → **Add to Home Screen** → Add
-4. Launch **FitLog** from your home screen (standalone, full-screen)
+### Option B — Local network (same Wi‑Fi as this machine)
 
-> Note: iOS may warn about non‑HTTPS sites. For a proper “installable” PWA over the internet, host this folder on HTTPS (e.g. Netlify, Cloudflare Pages, GitHub Pages, or a tunnel). The app itself is complete; hosting is the remaining step for remote Add‑to‑Home‑Screen.
+```bash
+cd /workspace/fitness-tracker
+python3 -m http.server 8787
+```
 
-### Option B — Standalone file (AirDrop / Files)
+Then open `http://<this-machine-ip>:8787` in Safari → Add to Home Screen.
 
-Open `fitness-tracker-standalone.html` in Safari. Everything is self‑contained (no service worker / offline shell). Still saves to `localStorage` on that browser.
+### Option C — Standalone file (AirDrop / Files)
+
+Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress photos are intended for the hosted multi-file PWA** (IndexedDB + camera capture are more reliable over HTTPS). The standalone file may omit or degrade photo features; prefer GitHub Pages for Front / Side / Rear photos.
 
 ## Features
 
@@ -39,11 +43,25 @@ Open `fitness-tracker-standalone.html` in Safari. Everything is self‑contained
 - Debounced auto-save with “Saved” indicator
 - History calendar + recent list with fill %
 - **Score** screen: 7-day & 30-day consistency, habit hit rate, blend score, and logging streak
+- **Progress photos**: weekly Front / Side / Rear (IndexedDB, compressed JPEGs), date list, side-by-side compare with presets, opacity overlay, and “Prepare for bot review” zip pack
 - Settings: water & steps goals
-- Export / import JSON (merge or replace)
+- Export / import JSON (merge or replace) for daily logs
 - Dark-mode-friendly UI (follows system preference)
 - PWA: manifest, theme color, Apple web-app meta, icons, service worker
 
+## Progress photos
+
+Open the camera icon in the header.
+
+| Piece | Detail |
+|--------|--------|
+| **Angles** | Front, Side, Rear per photo day |
+| **Storage** | IndexedDB (`fitlog-photos`), not localStorage. Full image max edge ~1600px JPEG @ 0.82; thumbnails ~320px |
+| **Capture** | Camera or file picker (iPhone-friendly) |
+| **Compare** | Date A vs Date B, stacked/side-by-side per angle |
+| **Presets** | Last week (−7d), this time last month (−1 calendar month), since month start (1st of Date A’s month), since year start (Jan 1), previous photo day. Missing dates snap to the nearest earlier day with photos |
+| **Overlay** | Optional opacity slider for the same angle |
+| **Bot review** | Downloads a zip of Date A + Date B angles plus `README.txt` — attach in App Builder chat for a summary. No backend upload |
 
 ## Scoring
 
@@ -69,6 +87,7 @@ fitness-tracker/
   fitness-tracker-standalone.html
   assets/
     app.js
+    photos.js
     styles.css
     icon.svg
     icon-180.png
@@ -86,5 +105,6 @@ fitness-tracker/
 
 ## Data keys
 
-- Logs: `fitlog:v1`
-- Settings: `fitlog:settings:v1`
+- Logs: `fitlog:v1` (localStorage)
+- Settings: `fitlog:settings:v1` (localStorage)
+- Progress photos: IndexedDB database `fitlog-photos` / store `photos`

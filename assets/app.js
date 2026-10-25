@@ -338,6 +338,7 @@
 
   function openScore() {
     persistCurrent();
+    closePanels();
     renderScorePanel();
     document.getElementById('score-panel').hidden = false;
   }
@@ -572,6 +573,7 @@
   // --- History / calendar ---
   function openHistory() {
     persistCurrent();
+    closePanels();
     calMonth = parseDateKey(currentDate);
     document.getElementById('history-panel').hidden = false;
     renderCalendar();
@@ -580,6 +582,7 @@
 
   function openSettings() {
     persistCurrent();
+    closePanels();
     document.getElementById('setting-water-goal').value =
       settings.waterGoal != null ? settings.waterGoal : '';
     document.getElementById('setting-steps-goal').value =
@@ -591,6 +594,8 @@
     document.getElementById('history-panel').hidden = true;
     document.getElementById('settings-panel').hidden = true;
     document.getElementById('score-panel').hidden = true;
+    const photosPanel = document.getElementById('photos-panel');
+    if (photosPanel) photosPanel.hidden = true;
   }
 
   function renderCalendar() {
@@ -925,6 +930,13 @@
     buildScales();
     bindEvents();
     loadFormForDate(currentDate);
+    if (window.FitLogPhotos) {
+      window.FitLogPhotos.init({
+        toast: toast,
+        todayKey: todayKey,
+        persistCurrent: persistCurrent
+      });
+    }
     registerSW();
   }
 

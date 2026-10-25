@@ -27,6 +27,9 @@
         <button type="button" class="icon-btn" id="btn-score" aria-label="Score" title="Score">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6z"/></svg>
         </button>
+        <button type="button" class="icon-btn" id="btn-photos" aria-label="Progress photos" title="Photos">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </button>
@@ -367,6 +370,115 @@
       </div>
     </aside>
 
+
+    <!-- Photos panel -->
+    <aside id="photos-panel" class="panel" hidden aria-label="Progress photos">
+      <div class="panel-header">
+        <h2>Photos</h2>
+        <button type="button" class="icon-btn" id="btn-close-photos" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="photos-tabs" role="tablist">
+        <button type="button" class="photos-tab active" data-photos-tab="capture" role="tab">Capture</button>
+        <button type="button" class="photos-tab" data-photos-tab="compare" role="tab">Compare</button>
+        <button type="button" class="photos-tab" data-photos-tab="review" role="tab">Bot review</button>
+      </div>
+
+      <div class="photos-section active" data-photos-section="capture">
+        <div class="photo-date-row">
+          <label>
+            <span class="field-label">Photo day</span>
+            <input type="date" id="photo-date" />
+          </label>
+          <button type="button" class="btn" id="btn-photo-today" style="align-self:flex-end">Today</button>
+        </div>
+        <div class="photo-angles">
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Front</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-front" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-front">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-front">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-front"></div>
+          </div>
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Side</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-side" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-side">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-side">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-side"></div>
+          </div>
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Rear</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-rear" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-rear">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-rear">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-rear"></div>
+          </div>
+        </div>
+        <div class="photos-actions">
+          <button type="button" class="btn danger-outline" id="btn-photo-delete-day">Delete all photos for this day</button>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:0.95rem">Photo days</h3>
+        <div id="photo-days-list" class="photo-days-list"></div>
+        <p class="photos-note">Photos are stored in this device’s IndexedDB (compressed JPEGs), separate from daily logs. Weekly Front / Side / Rear sets work best with consistent lighting and pose.</p>
+        <input type="file" id="photo-file-input" accept="image/*" hidden />
+      </div>
+
+      <div class="photos-section" data-photos-section="compare">
+        <div class="compare-dates">
+          <label>
+            Date A (newer)
+            <input type="date" id="compare-date-a" />
+          </label>
+          <label>
+            Date B (older)
+            <input type="date" id="compare-date-b" />
+          </label>
+        </div>
+        <div class="compare-presets">
+          <button type="button" data-compare-preset="last-week">Last week</button>
+          <button type="button" data-compare-preset="last-month">This time last month</button>
+          <button type="button" data-compare-preset="month-start">Since month start</button>
+          <button type="button" data-compare-preset="year-start">Since year start</button>
+          <button type="button" data-compare-preset="previous">Previous photo day</button>
+        </div>
+        <p class="photos-note" style="margin-top:0">Presets set Date B relative to Date A. If that day has no photos, FitLog snaps to the nearest earlier photo day.</p>
+        <div id="compare-grid" class="compare-grid"></div>
+        <div class="compare-overlay-wrap">
+          <h4>Opacity overlay</h4>
+          <div class="overlay-angle-select">
+            <button type="button" class="active" data-overlay-angle="front">Front</button>
+            <button type="button" data-overlay-angle="side">Side</button>
+            <button type="button" data-overlay-angle="rear">Rear</button>
+          </div>
+          <div id="overlay-stage" class="overlay-stage"><div class="overlay-empty">Select two dates</div></div>
+          <input type="range" id="overlay-slider" class="overlay-slider" min="0" max="100" value="50" aria-label="Overlay opacity" />
+        </div>
+      </div>
+
+      <div class="photos-section" data-photos-section="review">
+        <section class="settings-block">
+          <h3>Prepare for bot review</h3>
+          <p class="settings-note">Packages Date A (current) and Date B (comparison) Front / Side / Rear photos into a zip with a short README. Attach those files in your App Builder chat and ask for a week-over-week summary. Nothing is uploaded automatically.</p>
+          <p class="settings-note">Uses the dates currently set on the <strong>Compare</strong> tab (Date A / Date B). Set those first, then come back here.</p>
+          <button type="button" class="btn primary" id="btn-bot-review">Prepare for bot review</button>
+        </section>
+      </div>
+    </aside>
+
     <!-- History panel -->
     <aside id="history-panel" class="panel" hidden aria-label="History">
       <div class="panel-header">
@@ -421,13 +533,14 @@
         </section>
         <section class="settings-block">
           <h3>About</h3>
-          <p class="settings-note">FitLog stores everything in this browser’s localStorage. Add to Home Screen from Safari for an app-like icon. Works offline after first load.</p>
+          <p class="settings-note">FitLog stores daily logs in this browser’s localStorage and progress photos in IndexedDB. Add to Home Screen from Safari for an app-like icon. Works offline after first load.</p>
         </section>
       </div>
     </aside>
 
     <div id="toast" class="toast" hidden role="status"></div>
   </div>
+  <script src="assets/photos.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
