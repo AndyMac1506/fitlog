@@ -30,6 +30,7 @@ Open `fitness-tracker-standalone.html` in Safari. Everything is self‑contained
 - Water (oz) with quick +8/+16 buttons and optional goal progress
 - Sleep: bedtime, wake, auto duration (manual override), quality 1–10
 - Steps (optional goal progress), cardio minutes
+- Supplements: Morning / Noon / Night (Yes / No / N/A)
 - Training: Yes / No / Rest
 - Desire to train, energy in gym, energy outside gym, adherence (all 1–10)
 - Resting HR, blood pressure (sys/dia), off-plan meal count

@@ -7,6 +7,7 @@
   const FIELD_KEYS = [
     'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
     'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'supplementsMorning', 'supplementsNoon', 'supplementsNight',
     'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
     'adherence', 'restingHR', 'bpSystolic', 'bpDiastolic', 'offPlanMeals', 'notes'
   ];
@@ -121,6 +122,9 @@
       sleepQuality: '',
       steps: '',
       cardio: '',
+      supplementsMorning: '',
+      supplementsNoon: '',
+      supplementsNight: '',
       training: '',
       desireToTrain: '',
       energyInGym: '',
@@ -150,7 +154,8 @@
   function fillScore(log) {
     const tracked = [
       'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
-      'steps', 'cardio', 'training', 'desireToTrain', 'energyInGym',
+      'steps', 'cardio', 'supplementsMorning', 'supplementsNoon', 'supplementsNight',
+      'training', 'desireToTrain', 'energyInGym',
       'energyOutsideGym', 'adherence', 'restingHR', 'bpSystolic', 'notes'
     ];
     let filled = 0;
@@ -244,6 +249,11 @@
     document.querySelectorAll('input[name="training"]').forEach((r) => {
       r.checked = log.training === r.value;
     });
+    ['supplementsMorning', 'supplementsNoon', 'supplementsNight'].forEach((name) => {
+      document.querySelectorAll(`input[name="${name}"]`).forEach((r) => {
+        r.checked = log[name] === r.value;
+      });
+    });
 
     document.querySelectorAll('.scale').forEach(syncScaleUI);
     if (!durationManual) maybeAutoDuration();
@@ -271,6 +281,9 @@
       sleepQuality: document.getElementById('sleepQuality').value,
       steps: document.getElementById('steps').value,
       cardio: document.getElementById('cardio').value,
+      supplementsMorning: (document.querySelector('input[name="supplementsMorning"]:checked') || {}).value || '',
+      supplementsNoon: (document.querySelector('input[name="supplementsNoon"]:checked') || {}).value || '',
+      supplementsNight: (document.querySelector('input[name="supplementsNight"]:checked') || {}).value || '',
       training: trainingEl ? trainingEl.value : '',
       desireToTrain: document.getElementById('desireToTrain').value,
       energyInGym: document.getElementById('energyInGym').value,
@@ -613,7 +626,12 @@
       scheduleSave();
     });
     form.addEventListener('change', (e) => {
-      if (e.target.name === 'training') scheduleSave();
+      if (e.target.name === 'training' ||
+          e.target.name === 'supplementsMorning' ||
+          e.target.name === 'supplementsNoon' ||
+          e.target.name === 'supplementsNight') {
+        scheduleSave();
+      }
       if (e.target.id === 'bedtime' || e.target.id === 'wakeTime') {
         if (!durationManual) maybeAutoDuration();
         scheduleSave();
@@ -632,6 +650,13 @@
     document.getElementById('training-clear').addEventListener('click', () => {
       document.querySelectorAll('input[name="training"]').forEach((r) => { r.checked = false; });
       scheduleSave();
+    });
+    document.querySelectorAll('[data-seg-clear]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = btn.dataset.segClear;
+        document.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = false; });
+        scheduleSave();
+      });
     });
 
     document.querySelectorAll('[data-stepper]').forEach((btn) => {
