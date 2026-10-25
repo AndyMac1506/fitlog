@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'fitlog:settings:v1';
 
   const FIELD_KEYS = [
-    'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
+    'bodyweight', 'weighInTime', 'waist', 'water', 'bedtime', 'wakeTime',
     'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
     'protein', 'carbs', 'fat',
     'supplementsMorning', 'supplementsNoon', 'supplementsNight',
@@ -29,6 +29,8 @@
   let durationManual = false;
   let touchStartX = 0;
   let touchStartY = 0;
+  /** @type {'7'|'30'|'90'|'all'} */
+  let chartRange = '30';
 
   // --- Date helpers ---
   function todayKey() {
@@ -123,6 +125,7 @@
     return {
       bodyweight: '',
       weighInTime: '',
+      waist: '',
       water: '',
       bedtime: '',
       wakeTime: '',
@@ -226,7 +229,7 @@
 
   function fillScore(log) {
     const tracked = [
-      'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
+      'bodyweight', 'waist', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
       'steps', 'cardio', 'protein', 'carbs', 'fat',
       'supplementsMorning', 'supplementsNoon', 'supplementsNight',
       'training', 'desireToTrain', 'energyInGym',
@@ -417,6 +420,286 @@
     document.getElementById('score-panel').hidden = false;
   }
 
+
+  // --- Waist (Friday morning) ---
+  function isFridayKey(dateKey) {
+    return parseDateKey(dateKey).getDay() === 5;
+  }
+
+  function getLastFridayWaist(beforeKey) {
+    // Prefer most recent Friday on or before beforeKey with waist set
+    const keys = Object.keys(store.logs)
+      .filter((k) => {
+        if (!isFridayKey(k)) return false;
+        if (beforeKey && k > beforeKey) return false;
+        const w = store.logs[k] && store.logs[k].waist;
+        return w !== '' && w != null;
+      })
+      .sort((a, b) => b.localeCompare(a));
+    if (!keys.length) return null;
+    const key = keys[0];
+    return { key, waist: store.logs[key].waist };
+  }
+
+  function updateWaistUI(dateKey) {
+    const fridayBlock = document.getElementById('waist-friday-block');
+    const otherBlock = document.getElementById('waist-other-block');
+    const waistInput = document.getElementById('waist');
+    if (!fridayBlock || !otherBlock || !waistInput) return;
+
+    if (isFridayKey(dateKey)) {
+      fridayBlock.hidden = false;
+      otherBlock.hidden = true;
+      waistInput.disabled = false;
+    } else {
+      fridayBlock.hidden = true;
+      otherBlock.hidden = false;
+      waistInput.disabled = true;
+      // Clear visible input so non-Friday days don't accidentally save a typed value;
+      // readForm still pulls from store via disabled? No — we keep store waist only on Fridays.
+      // Show last Friday waist for context.
+      const last = getLastFridayWaist(dateKey);
+      const valEl = document.getElementById('last-waist-value');
+      const hintEl = document.getElementById('last-waist-hint');
+      if (last) {
+        valEl.textContent = String(last.waist);
+        const d = parseDateKey(last.key);
+        hintEl.textContent = `From ${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · enter on Fridays only`;
+      } else {
+        valEl.textContent = '—';
+        hintEl.textContent = 'No Friday waist logged yet · enter on Fridays only';
+      }
+    }
+  }
+
+  // --- Charts ---
+  function collectSeries(field, opts) {
+    opts = opts || {};
+    const fridayOnly = !!opts.fridayOnly;
+    const points = [];
+    const keys = Object.keys(store.logs).sort();
+    for (const key of keys) {
+      if (fridayOnly && !isFridayKey(key)) continue;
+      const log = store.logs[key];
+      if (!log) continue;
+      const raw = log[field];
+      if (raw === '' || raw == null) continue;
+      const n = Number(raw);
+      if (Number.isNaN(n)) continue;
+      points.push({ key, value: n, date: parseDateKey(key) });
+    }
+    return points;
+  }
+
+  function filterSeriesByRange(points, range) {
+    if (!points.length) return [];
+    if (range === 'all') return points.slice();
+    const days = Number(range);
+    const end = parseDateKey(todayKey());
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+    start.setHours(0, 0, 0, 0);
+    return points.filter((p) => p.date >= start && p.date <= end);
+  }
+
+  function seriesStats(points) {
+    if (!points.length) {
+      return { latest: null, change: null, low: null, high: null };
+    }
+    const values = points.map((p) => p.value);
+    const latest = points[points.length - 1].value;
+    const first = points[0].value;
+    const change = Math.round((latest - first) * 10) / 10;
+    return {
+      latest,
+      change,
+      low: Math.min(...values),
+      high: Math.max(...values)
+    };
+  }
+
+  function formatSigned(n, digits) {
+    if (n == null || Number.isNaN(n)) return '—';
+    const fixed = Number(n).toFixed(digits == null ? 1 : digits);
+    const num = Number(fixed);
+    if (num > 0) return '+' + fixed;
+    return fixed;
+  }
+
+  function setStat(id, text, extraClass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('up', 'down');
+    if (extraClass) el.classList.add(extraClass);
+  }
+
+  function drawLineChart(canvas, points, color) {
+    const emptyEl = canvas.parentElement.querySelector('.chart-empty');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth || 360;
+    const cssH = 200;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    if (!points.length) {
+      if (emptyEl) emptyEl.hidden = false;
+      return;
+    }
+    if (emptyEl) emptyEl.hidden = true;
+
+    const pad = { top: 16, right: 12, bottom: 28, left: 40 };
+    const plotW = cssW - pad.left - pad.right;
+    const plotH = cssH - pad.top - pad.bottom;
+
+    let minV = Math.min(...points.map((p) => p.value));
+    let maxV = Math.max(...points.map((p) => p.value));
+    if (minV === maxV) {
+      minV -= 1;
+      maxV += 1;
+    }
+    const padV = (maxV - minV) * 0.12;
+    minV -= padV;
+    maxV += padV;
+
+    const minT = points[0].date.getTime();
+    const maxT = points[points.length - 1].date.getTime();
+    const spanT = Math.max(maxT - minT, 1);
+
+    function xAt(p) {
+      return pad.left + ((p.date.getTime() - minT) / spanT) * plotW;
+    }
+    function yAt(v) {
+      return pad.top + (1 - (v - minV) / (maxV - minV)) * plotH;
+    }
+
+    // grid + y labels
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#243041';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-dim').trim() || '#5c6b7e';
+    ctx.lineWidth = 1;
+    ctx.font = '11px ' + (getComputedStyle(document.body).fontFamily || 'sans-serif');
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+      const v = minV + ((maxV - minV) * i) / ticks;
+      const y = yAt(v);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + plotW, y);
+      ctx.stroke();
+      const label = (Math.round(v * 10) / 10).toFixed(1);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pad.left - 6, y);
+    }
+
+    // x labels: first / mid / last
+    const labelIdx = [0];
+    if (points.length > 2) labelIdx.push(Math.floor((points.length - 1) / 2));
+    if (points.length > 1) labelIdx.push(points.length - 1);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    labelIdx.forEach((idx) => {
+      const p = points[idx];
+      const x = xAt(p);
+      const label = p.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      ctx.fillText(label, x, pad.top + plotH + 8);
+    });
+
+    // area fill
+    const accent = color;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xAt(p);
+      const y = yAt(p.value);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    const last = points[points.length - 1];
+    const first = points[0];
+    ctx.lineTo(xAt(last), pad.top + plotH);
+    ctx.lineTo(xAt(first), pad.top + plotH);
+    ctx.closePath();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = accent;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // line
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xAt(p);
+      const y = yAt(p.value);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // points
+    points.forEach((p) => {
+      const x = xAt(p);
+      const y = yAt(p.value);
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0f14';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+  }
+
+  function renderCharts() {
+    const weightAll = collectSeries('bodyweight');
+    const waistAll = collectSeries('waist', { fridayOnly: true });
+    const weight = filterSeriesByRange(weightAll, chartRange);
+    const waist = filterSeriesByRange(waistAll, chartRange);
+
+    const wStats = seriesStats(weight);
+    setStat('weight-stat-latest', wStats.latest == null ? '—' : Number(wStats.latest).toFixed(1));
+    setStat(
+      'weight-stat-change',
+      formatSigned(wStats.change, 1),
+      wStats.change == null ? null : (wStats.change < 0 ? 'down' : wStats.change > 0 ? 'up' : null)
+    );
+    setStat('weight-stat-low', wStats.low == null ? '—' : Number(wStats.low).toFixed(1));
+    setStat('weight-stat-high', wStats.high == null ? '—' : Number(wStats.high).toFixed(1));
+
+    const zStats = seriesStats(waist);
+    setStat('waist-stat-latest', zStats.latest == null ? '—' : Number(zStats.latest).toFixed(1));
+    setStat(
+      'waist-stat-change',
+      formatSigned(zStats.change, 1),
+      zStats.change == null ? null : (zStats.change < 0 ? 'down' : zStats.change > 0 ? 'up' : null)
+    );
+    setStat('waist-stat-low', zStats.low == null ? '—' : Number(zStats.low).toFixed(1));
+    setStat('waist-stat-high', zStats.high == null ? '—' : Number(zStats.high).toFixed(1));
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3dd6c6';
+    const warn = getComputedStyle(document.documentElement).getPropertyValue('--warn').trim() || '#e6c07b';
+    drawLineChart(document.getElementById('weight-chart'), weight, accent);
+    drawLineChart(document.getElementById('waist-chart'), waist, warn);
+
+    document.querySelectorAll('[data-chart-range]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.chartRange === chartRange);
+    });
+  }
+
+  function openCharts() {
+    persistCurrent();
+    closePanels();
+    renderCharts();
+    document.getElementById('charts-panel').hidden = false;
+  }
+
   // --- Sleep duration ---
   function calcSleepHours(bedtime, wakeTime) {
     if (!bedtime || !wakeTime) return null;
@@ -487,6 +770,7 @@
 
     setVal('bodyweight', log.bodyweight);
     setVal('weighInTime', log.weighInTime);
+    setVal('waist', isFridayKey(dateKey) ? log.waist : '');
     setVal('water', log.water);
     setVal('bedtime', log.bedtime);
     setVal('wakeTime', log.wakeTime);
@@ -521,6 +805,7 @@
     updateDurationHint();
     updateProgressBars();
     updateNutritionUI();
+    updateWaistUI(dateKey);
     updateDateNav();
   }
 
@@ -536,9 +821,14 @@
     if (!storedHasTargetSnapshot(currentDate)) {
       currentDayTargets = resolveTargetsForDay(currentDate);
     }
+    const existing = store.logs[currentDate] || {};
+    const waistValue = isFridayKey(currentDate)
+      ? document.getElementById('waist').value
+      : (existing.waist != null ? existing.waist : '');
     return {
       bodyweight: document.getElementById('bodyweight').value,
       weighInTime: document.getElementById('weighInTime').value,
+      waist: waistValue,
       water: document.getElementById('water').value,
       bedtime: document.getElementById('bedtime').value,
       wakeTime: document.getElementById('wakeTime').value,
@@ -815,6 +1105,8 @@
     document.getElementById('history-panel').hidden = true;
     document.getElementById('settings-panel').hidden = true;
     document.getElementById('score-panel').hidden = true;
+    const chartsPanel = document.getElementById('charts-panel');
+    if (chartsPanel) chartsPanel.hidden = true;
     const photosPanel = document.getElementById('photos-panel');
     if (photosPanel) photosPanel.hidden = true;
   }
@@ -879,6 +1171,7 @@
       btn.className = 'history-item';
       const bits = [];
       if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
+      if (log.waist) bits.push(`waist ${log.waist} in`);
       if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
       const dayCal = calcCalories(log.protein, log.carbs, log.fat);
       if (dayCal != null) bits.push(`${dayCal} kcal`);
@@ -997,6 +1290,14 @@
 
     document.getElementById('btn-score').addEventListener('click', openScore);
     document.getElementById('btn-close-score').addEventListener('click', closePanels);
+    document.getElementById('btn-charts').addEventListener('click', openCharts);
+    document.getElementById('btn-close-charts').addEventListener('click', closePanels);
+    document.querySelectorAll('[data-chart-range]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        chartRange = btn.dataset.chartRange;
+        renderCharts();
+      });
+    });
     document.getElementById('btn-history').addEventListener('click', openHistory);
     document.getElementById('btn-close-history').addEventListener('click', closePanels);
     document.getElementById('btn-settings').addEventListener('click', openSettings);

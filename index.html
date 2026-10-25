@@ -30,6 +30,9 @@
         <button type="button" class="icon-btn" id="btn-photos" aria-label="Progress photos" title="Photos">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
+        <button type="button" class="icon-btn" id="btn-charts" aria-label="Charts" title="Charts">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16"/><path d="M8 16V10M12 16V7M16 16v-5"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </button>
@@ -74,6 +77,23 @@
                 <span class="field-label">Weigh-in time</span>
                 <input type="time" name="weighInTime" id="weighInTime" />
               </label>
+            </div>
+
+            <div id="waist-friday-block" class="waist-block" hidden>
+              <label class="field">
+                <span class="field-label">Waist <span class="hint">(Friday morning)</span></span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="0.1" min="0" name="waist" id="waist" placeholder="—" />
+                  <span class="unit">in</span>
+                </div>
+              </label>
+            </div>
+            <div id="waist-other-block" class="waist-other" hidden>
+              <div class="waist-last-card">
+                <span class="field-label">Last Friday waist</span>
+                <div class="waist-last-value"><span id="last-waist-value">—</span> <span class="unit">in</span></div>
+                <p class="waist-hint" id="last-waist-hint">Enter waist on Fridays only</p>
+              </div>
             </div>
             <div class="field-row">
               <label class="field">
@@ -532,6 +552,60 @@
           <p class="settings-note">Packages Date A (current) and Date B (comparison) Front / Side / Rear photos into a zip with a short README. Attach those files in your App Builder chat and ask for a week-over-week summary. Nothing is uploaded automatically.</p>
           <p class="settings-note">Uses the dates currently set on the <strong>Compare</strong> tab (Date A / Date B). Set those first, then come back here.</p>
           <button type="button" class="btn primary" id="btn-bot-review">Prepare for bot review</button>
+        </section>
+      </div>
+    </aside>
+
+
+    <!-- Charts panel -->
+    <aside id="charts-panel" class="panel" hidden aria-label="Charts">
+      <div class="panel-header">
+        <h2>Charts</h2>
+        <button type="button" class="icon-btn" id="btn-close-charts" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="panel-body charts-body">
+        <div class="chart-range" role="group" aria-label="Chart range">
+          <button type="button" class="chart-range-btn" data-chart-range="7">7d</button>
+          <button type="button" class="chart-range-btn active" data-chart-range="30">30d</button>
+          <button type="button" class="chart-range-btn" data-chart-range="90">90d</button>
+          <button type="button" class="chart-range-btn" data-chart-range="all">All</button>
+        </div>
+
+        <section class="chart-card">
+          <div class="chart-card-head">
+            <h3>Bodyweight</h3>
+            <span class="chart-unit">lbs</span>
+          </div>
+          <div class="chart-stats" id="weight-chart-stats">
+            <div class="chart-stat"><span class="cs-label">Latest</span><span class="cs-value" id="weight-stat-latest">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Change</span><span class="cs-value" id="weight-stat-change">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Low</span><span class="cs-value" id="weight-stat-low">—</span></div>
+            <div class="chart-stat"><span class="cs-label">High</span><span class="cs-value" id="weight-stat-high">—</span></div>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="weight-chart" width="400" height="220" aria-label="Bodyweight over time"></canvas>
+            <p class="chart-empty" id="weight-chart-empty" hidden>No bodyweight entries in this range</p>
+          </div>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-card-head">
+            <h3>Waist</h3>
+            <span class="chart-unit">in · Fridays</span>
+          </div>
+          <div class="chart-stats" id="waist-chart-stats">
+            <div class="chart-stat"><span class="cs-label">Latest</span><span class="cs-value" id="waist-stat-latest">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Change</span><span class="cs-value" id="waist-stat-change">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Low</span><span class="cs-value" id="waist-stat-low">—</span></div>
+            <div class="chart-stat"><span class="cs-label">High</span><span class="cs-value" id="waist-stat-high">—</span></div>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="waist-chart" width="400" height="220" aria-label="Waist over time"></canvas>
+            <p class="chart-empty" id="waist-chart-empty" hidden>No Friday waist entries yet</p>
+          </div>
+          <p class="settings-note" style="margin-top:10px">Waist is logged on Friday mornings from the Body section.</p>
         </section>
       </div>
     </aside>

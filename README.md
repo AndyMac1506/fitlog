@@ -44,6 +44,8 @@ Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress p
 - Debounced auto-save with “Saved” indicator
 - History calendar + recent list with fill %
 - **Score** screen: 7-day & 30-day consistency, habit hit rate, blend score, and logging streak
+- **Charts**: bodyweight over time (7d / 30d / 90d / all) and Friday waist trend
+- Friday morning **waist (in)** on the Body card (Fridays only; other days show last Friday’s value)
 - **Progress photos**: weekly Front / Side / Rear (IndexedDB, compressed JPEGs), date list, side-by-side compare with presets, opacity overlay, and “Prepare for bot review” zip pack
 - Settings: water & steps goals; macro targets (historical per-day snapshots)
 - Export / import JSON (merge or replace) for daily logs
@@ -83,6 +85,18 @@ Open the camera icon in the header.
 | **Overlay** | Optional opacity slider for the same angle |
 | **Bot review** | Downloads a zip of Date A + Date B angles plus `README.txt` — attach in App Builder chat for a summary. No backend upload |
 
+
+## Charts & waist
+
+Open the bar-chart icon in the header.
+
+| Piece | Detail |
+|--------|--------|
+| **Bodyweight** | Line chart of daily `bodyweight` (lbs). Skips empty days. Default range **30d**; toggles for 7d / 30d / 90d / all |
+| **Waist** | Line chart of Friday morning `waist` (inches). Entered only when the selected log day is a **Friday**; other days show the last recorded Friday waist as read-only context |
+| **Stats** | Latest, change over the selected range, low, and high |
+| **Storage** | `waist` lives on that Friday’s log entry in `fitlog:v1` (localStorage) and is included in JSON export/import |
+
 ## Scoring
 
 Open the star icon in the header for the Score screen.
@@ -118,6 +132,7 @@ fitness-tracker/
 ## Units & defaults
 
 - Bodyweight: **lbs**
+- Waist: **inches** (Friday mornings)
 - Water: **oz**
 - Sleep duration: hours (auto from bedtime → wake, including overnight)
 - Scales: 1–10 (tap again to clear)
