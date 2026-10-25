@@ -38,10 +38,25 @@ Open `fitness-tracker-standalone.html` in Safari. Everything is self‑contained
 - Sticky date nav, prev/next day, swipe between days
 - Debounced auto-save with “Saved” indicator
 - History calendar + recent list with fill %
+- **Score** screen: 7-day & 30-day consistency, habit hit rate, blend score, and logging streak
 - Settings: water & steps goals
 - Export / import JSON (merge or replace)
 - Dark-mode-friendly UI (follows system preference)
 - PWA: manifest, theme color, Apple web-app meta, icons, service worker
+
+
+## Scoring
+
+Open the star icon in the header for the Score screen.
+
+| Metric | Formula |
+|--------|---------|
+| **Logged day** | Any non-empty field on that day’s log (metrics, supplements, notes, etc.) |
+| **Consistency** | `(logged days) / (days in window)` for Last 7 or Last 30 days ending today |
+| **Habit checks** (per logged day) | Supplements Morning/Noon/Night: pass if Yes or N/A, fail if No or blank. Training: pass if Yes/No/Rest. Adherence: pass if 1–10 set. Water/Steps goals: only if set in Settings; pass when met |
+| **Habit hit rate** | `(passed checks) / (applicable checks)` across logged days in the window. Shows “—” if no applicable checks |
+| **Blend (0–100)** | `round(0.4 × consistency% + 0.6 × habitHit%)`. If habit hit is unavailable, blend = consistency only |
+| **Logging streak** | Consecutive logged days ending today, or yesterday if today is still empty |
 
 ## Project layout
 

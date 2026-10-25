@@ -1,5 +1,5 @@
 /* FitLog service worker — offline shell */
-const CACHE = 'fitlog-v3';
+const CACHE = 'fitlog-v4';
 const ASSETS = [
   './',
   './index.html',

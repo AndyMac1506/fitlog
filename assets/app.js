@@ -166,6 +166,182 @@
     return Math.round((filled / tracked.length) * 100);
   }
 
+
+  // --- Consistency / habit / blend scoring ---
+  function isDayLogged(dateKey) {
+    const log = store.logs[dateKey];
+    return !!(log && !isLogEmpty(log));
+  }
+
+  /**
+   * Habit checks for one logged day.
+   * Returns { passed, applicable } counts. N/A supplements pass; empty fails.
+   * Water/steps only applicable when a goal is set in settings.
+   */
+  function habitChecksForLog(log) {
+    let passed = 0;
+    let applicable = 0;
+
+    function checkSupp(val) {
+      applicable++;
+      if (val === 'yes' || val === 'na') passed++;
+      // 'no' or empty = fail
+    }
+    checkSupp(log.supplementsMorning);
+    checkSupp(log.supplementsNoon);
+    checkSupp(log.supplementsNight);
+
+    // Training: pass if yes/no/rest; fail if empty
+    applicable++;
+    if (log.training === 'yes' || log.training === 'no' || log.training === 'rest') {
+      passed++;
+    }
+
+    // Adherence: pass if 1–10 set
+    applicable++;
+    const adh = Number(log.adherence);
+    if (log.adherence !== '' && log.adherence != null && adh >= 1 && adh <= 10) {
+      passed++;
+    }
+
+    // Water goal (optional)
+    if (settings.waterGoal != null && settings.waterGoal > 0) {
+      applicable++;
+      const water = Number(log.water);
+      if (log.water !== '' && log.water != null && water >= settings.waterGoal) {
+        passed++;
+      }
+    }
+
+    // Steps goal (optional)
+    if (settings.stepsGoal != null && settings.stepsGoal > 0) {
+      applicable++;
+      const steps = Number(log.steps);
+      if (log.steps !== '' && log.steps != null && steps >= settings.stepsGoal) {
+        passed++;
+      }
+    }
+
+    return { passed, applicable };
+  }
+
+  /** Window ending today: last `days` calendar days inclusive of today. */
+  function windowDateKeys(days) {
+    const today = todayKey();
+    const keys = [];
+    for (let i = days - 1; i >= 0; i--) {
+      keys.push(shiftDate(today, -i));
+    }
+    return keys;
+  }
+
+  function computeWindowStats(days) {
+    const keys = windowDateKeys(days);
+    let logged = 0;
+    let passed = 0;
+    let applicable = 0;
+
+    for (const key of keys) {
+      if (!isDayLogged(key)) continue;
+      logged++;
+      const checks = habitChecksForLog(getLog(key));
+      passed += checks.passed;
+      applicable += checks.applicable;
+    }
+
+    const consistencyPct = Math.round((logged / keys.length) * 100);
+    const habitAvailable = applicable > 0;
+    const habitHitPct = habitAvailable ? Math.round((passed / applicable) * 100) : null;
+
+    let blend;
+    let blendMode;
+    if (habitAvailable) {
+      blend = Math.round(0.4 * consistencyPct + 0.6 * habitHitPct);
+      blendMode = 'blend';
+    } else {
+      blend = consistencyPct;
+      blendMode = 'consistency-only';
+    }
+
+    return {
+      days: keys.length,
+      logged,
+      passed,
+      applicable,
+      consistencyPct,
+      habitHitPct,
+      habitAvailable,
+      blend,
+      blendMode
+    };
+  }
+
+  /** Streak: consecutive logged days ending today, or yesterday if today empty. */
+  function computeLoggingStreak() {
+    const today = todayKey();
+    let start = today;
+    if (!isDayLogged(today)) {
+      const yesterday = shiftDate(today, -1);
+      if (!isDayLogged(yesterday)) return 0;
+      start = yesterday;
+    }
+    let streak = 0;
+    let key = start;
+    while (isDayLogged(key)) {
+      streak++;
+      key = shiftDate(key, -1);
+    }
+    return streak;
+  }
+
+  function formatPct(n) {
+    return n == null ? '—' : `${n}%`;
+  }
+
+  function renderScorePanel() {
+    const streak = computeLoggingStreak();
+    document.getElementById('score-streak').textContent = String(streak);
+    const hint = document.getElementById('score-streak-hint');
+    if (streak === 0) {
+      hint.textContent = 'Log anything today to start a streak';
+    } else if (!isDayLogged(todayKey())) {
+      hint.textContent = 'Today not logged yet — streak counted through yesterday';
+    } else {
+      hint.textContent = 'Consecutive days with any log entry';
+    }
+
+    [7, 30].forEach((days) => {
+      const s = computeWindowStats(days);
+      const blendEl = document.getElementById(`score-${days}-blend`);
+      const blendLabel = document.getElementById(`score-${days}-blend-label`);
+      const consEl = document.getElementById(`score-${days}-consistency`);
+      const habitEl = document.getElementById(`score-${days}-habit`);
+      const detailEl = document.getElementById(`score-${days}-detail`);
+
+      blendEl.textContent = String(s.blend);
+      blendEl.classList.toggle('is-empty', s.logged === 0 && s.blend === 0);
+      if (s.blendMode === 'consistency-only') {
+        blendLabel.textContent = 'Consistency only (no habit checks yet)';
+      } else {
+        blendLabel.textContent = 'Blend score (40% consistency + 60% habit)';
+      }
+
+      consEl.textContent = formatPct(s.consistencyPct);
+      habitEl.textContent = formatPct(s.habitHitPct);
+
+      const habitPart = s.habitAvailable
+        ? `${s.passed}/${s.applicable} habit checks passed`
+        : 'no habit checks yet';
+      detailEl.textContent = `${s.logged} of ${s.days} days logged · ${habitPart}`;
+    });
+  }
+
+  function openScore() {
+    persistCurrent();
+    renderScorePanel();
+    document.getElementById('score-panel').hidden = false;
+  }
+
   // --- Sleep duration ---
   function calcSleepHours(bedtime, wakeTime) {
     if (!bedtime || !wakeTime) return null;
@@ -414,6 +590,7 @@
   function closePanels() {
     document.getElementById('history-panel').hidden = true;
     document.getElementById('settings-panel').hidden = true;
+    document.getElementById('score-panel').hidden = true;
   }
 
   function renderCalendar() {
@@ -584,6 +761,8 @@
       goToDate(todayKey());
     });
 
+    document.getElementById('btn-score').addEventListener('click', openScore);
+    document.getElementById('btn-close-score').addEventListener('click', closePanels);
     document.getElementById('btn-history').addEventListener('click', openHistory);
     document.getElementById('btn-close-history').addEventListener('click', closePanels);
     document.getElementById('btn-settings').addEventListener('click', openSettings);

@@ -24,6 +24,9 @@
       </div>
       <div class="top-actions">
         <span id="save-status" class="save-status" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="btn-score" aria-label="Score" title="Score">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6z"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </button>
@@ -288,6 +291,81 @@
       </form>
       <p class="footer-hint">Auto-saves locally on this device</p>
     </main>
+
+
+    <!-- Score panel -->
+    <aside id="score-panel" class="panel" hidden aria-label="Score">
+      <div class="panel-header">
+        <h2>Score</h2>
+        <button type="button" class="icon-btn" id="btn-close-score" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="panel-body score-body">
+        <div class="score-streak-card" id="score-streak-card">
+          <div class="streak-label">Logging streak</div>
+          <div class="streak-value"><span id="score-streak">0</span> <span class="streak-unit">days</span></div>
+          <p class="streak-hint" id="score-streak-hint">Consecutive days with any log entry</p>
+        </div>
+
+        <section class="score-window-card" data-window="7">
+          <h3>Last 7 days</h3>
+          <div class="blend-hero">
+            <div class="blend-number" id="score-7-blend">—</div>
+            <div class="blend-label" id="score-7-blend-label">Blend score</div>
+          </div>
+          <div class="score-metrics">
+            <div class="score-metric">
+              <span class="sm-label">Consistency</span>
+              <span class="sm-value" id="score-7-consistency">—</span>
+            </div>
+            <div class="score-metric">
+              <span class="sm-label">Habit hit</span>
+              <span class="sm-value" id="score-7-habit">—</span>
+            </div>
+          </div>
+          <p class="score-detail" id="score-7-detail"></p>
+        </section>
+
+        <section class="score-window-card" data-window="30">
+          <h3>Last 30 days</h3>
+          <div class="blend-hero">
+            <div class="blend-number" id="score-30-blend">—</div>
+            <div class="blend-label" id="score-30-blend-label">Blend score</div>
+          </div>
+          <div class="score-metrics">
+            <div class="score-metric">
+              <span class="sm-label">Consistency</span>
+              <span class="sm-value" id="score-30-consistency">—</span>
+            </div>
+            <div class="score-metric">
+              <span class="sm-label">Habit hit</span>
+              <span class="sm-value" id="score-30-habit">—</span>
+            </div>
+          </div>
+          <p class="score-detail" id="score-30-detail"></p>
+        </section>
+
+        <section class="settings-block score-legend">
+          <h3>How scoring works</h3>
+          <ul class="legend-list">
+            <li><strong>Logged day</strong> — any field filled (metrics, supplements, notes, etc.).</li>
+            <li><strong>Consistency</strong> — logged days ÷ days in the window (7 or 30).</li>
+            <li><strong>Habit checks</strong> (on logged days only):
+              <ul>
+                <li>Supplements Morning / Noon / Night — pass if Yes or N/A; fail if No or blank.</li>
+                <li>Training — pass if Yes, No, or Rest; fail if blank.</li>
+                <li>Adherence — pass if 1–10 set; fail if blank.</li>
+                <li>Water / Steps goals — only if a goal is set in Settings; pass when met, otherwise fail. Skipped if no goal.</li>
+              </ul>
+            </li>
+            <li><strong>Habit hit rate</strong> — passed checks ÷ applicable checks across logged days. Shows “—” if none apply.</li>
+            <li><strong>Blend</strong> — round(40% × consistency + 60% × habit hit). If habit hit is unavailable, blend = consistency only.</li>
+            <li><strong>Streak</strong> — consecutive logged days ending today, or yesterday if today is still empty.</li>
+          </ul>
+        </section>
+      </div>
+    </aside>
 
     <!-- History panel -->
     <aside id="history-panel" class="panel" hidden aria-label="History">

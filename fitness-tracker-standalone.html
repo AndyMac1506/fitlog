@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FitLog" />
   <meta name="description" content="Daily fitness and health tracker" />
+
   <title>FitLog (standalone)</title>
   <style>
 :root {
@@ -709,6 +710,138 @@ input[type="number"] { -moz-appearance: textfield; }
   }
 }
 
+/* Score panel */
+.score-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.score-streak-card {
+  background: linear-gradient(135deg, var(--accent-dim), color-mix(in srgb, #5b8def 18%, transparent));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: center;
+}
+.streak-label {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.streak-value {
+  font-size: 2.4rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  line-height: 1.15;
+  margin: 4px 0;
+}
+.streak-unit {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+.streak-hint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.score-window-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.score-window-card h3 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 650;
+}
+
+.blend-hero {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.blend-number {
+  font-size: 3rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--accent), #5b8def);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.blend-number.is-empty {
+  background: none;
+  -webkit-text-fill-color: var(--text-dim);
+  color: var(--text-dim);
+}
+.blend-label {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+.score-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.score-metric {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+.sm-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+.sm-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 750;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.score-detail {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.score-legend .legend-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.score-legend .legend-list li { margin-bottom: 8px; }
+.score-legend .legend-list ul {
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+}
+.score-legend strong { color: var(--text); font-weight: 650; }
+
   </style>
 </head>
 <body>
@@ -720,6 +853,9 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
       <div class="top-actions">
         <span id="save-status" class="save-status" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="btn-score" aria-label="Score" title="Score">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6z"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </button>
@@ -985,6 +1121,81 @@ input[type="number"] { -moz-appearance: textfield; }
       <p class="footer-hint">Auto-saves locally on this device</p>
     </main>
 
+
+    <!-- Score panel -->
+    <aside id="score-panel" class="panel" hidden aria-label="Score">
+      <div class="panel-header">
+        <h2>Score</h2>
+        <button type="button" class="icon-btn" id="btn-close-score" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="panel-body score-body">
+        <div class="score-streak-card" id="score-streak-card">
+          <div class="streak-label">Logging streak</div>
+          <div class="streak-value"><span id="score-streak">0</span> <span class="streak-unit">days</span></div>
+          <p class="streak-hint" id="score-streak-hint">Consecutive days with any log entry</p>
+        </div>
+
+        <section class="score-window-card" data-window="7">
+          <h3>Last 7 days</h3>
+          <div class="blend-hero">
+            <div class="blend-number" id="score-7-blend">—</div>
+            <div class="blend-label" id="score-7-blend-label">Blend score</div>
+          </div>
+          <div class="score-metrics">
+            <div class="score-metric">
+              <span class="sm-label">Consistency</span>
+              <span class="sm-value" id="score-7-consistency">—</span>
+            </div>
+            <div class="score-metric">
+              <span class="sm-label">Habit hit</span>
+              <span class="sm-value" id="score-7-habit">—</span>
+            </div>
+          </div>
+          <p class="score-detail" id="score-7-detail"></p>
+        </section>
+
+        <section class="score-window-card" data-window="30">
+          <h3>Last 30 days</h3>
+          <div class="blend-hero">
+            <div class="blend-number" id="score-30-blend">—</div>
+            <div class="blend-label" id="score-30-blend-label">Blend score</div>
+          </div>
+          <div class="score-metrics">
+            <div class="score-metric">
+              <span class="sm-label">Consistency</span>
+              <span class="sm-value" id="score-30-consistency">—</span>
+            </div>
+            <div class="score-metric">
+              <span class="sm-label">Habit hit</span>
+              <span class="sm-value" id="score-30-habit">—</span>
+            </div>
+          </div>
+          <p class="score-detail" id="score-30-detail"></p>
+        </section>
+
+        <section class="settings-block score-legend">
+          <h3>How scoring works</h3>
+          <ul class="legend-list">
+            <li><strong>Logged day</strong> — any field filled (metrics, supplements, notes, etc.).</li>
+            <li><strong>Consistency</strong> — logged days ÷ days in the window (7 or 30).</li>
+            <li><strong>Habit checks</strong> (on logged days only):
+              <ul>
+                <li>Supplements Morning / Noon / Night — pass if Yes or N/A; fail if No or blank.</li>
+                <li>Training — pass if Yes, No, or Rest; fail if blank.</li>
+                <li>Adherence — pass if 1–10 set; fail if blank.</li>
+                <li>Water / Steps goals — only if a goal is set in Settings; pass when met, otherwise fail. Skipped if no goal.</li>
+              </ul>
+            </li>
+            <li><strong>Habit hit rate</strong> — passed checks ÷ applicable checks across logged days. Shows “—” if none apply.</li>
+            <li><strong>Blend</strong> — round(40% × consistency + 60% × habit hit). If habit hit is unavailable, blend = consistency only.</li>
+            <li><strong>Streak</strong> — consecutive logged days ending today, or yesterday if today is still empty.</li>
+          </ul>
+        </section>
+      </div>
+    </aside>
+
     <!-- History panel -->
     <aside id="history-panel" class="panel" hidden aria-label="History">
       <div class="panel-header">
@@ -1213,6 +1424,182 @@ input[type="number"] { -moz-appearance: textfield; }
       if (v !== '' && v != null) filled++;
     }
     return Math.round((filled / tracked.length) * 100);
+  }
+
+
+  // --- Consistency / habit / blend scoring ---
+  function isDayLogged(dateKey) {
+    const log = store.logs[dateKey];
+    return !!(log && !isLogEmpty(log));
+  }
+
+  /**
+   * Habit checks for one logged day.
+   * Returns { passed, applicable } counts. N/A supplements pass; empty fails.
+   * Water/steps only applicable when a goal is set in settings.
+   */
+  function habitChecksForLog(log) {
+    let passed = 0;
+    let applicable = 0;
+
+    function checkSupp(val) {
+      applicable++;
+      if (val === 'yes' || val === 'na') passed++;
+      // 'no' or empty = fail
+    }
+    checkSupp(log.supplementsMorning);
+    checkSupp(log.supplementsNoon);
+    checkSupp(log.supplementsNight);
+
+    // Training: pass if yes/no/rest; fail if empty
+    applicable++;
+    if (log.training === 'yes' || log.training === 'no' || log.training === 'rest') {
+      passed++;
+    }
+
+    // Adherence: pass if 1–10 set
+    applicable++;
+    const adh = Number(log.adherence);
+    if (log.adherence !== '' && log.adherence != null && adh >= 1 && adh <= 10) {
+      passed++;
+    }
+
+    // Water goal (optional)
+    if (settings.waterGoal != null && settings.waterGoal > 0) {
+      applicable++;
+      const water = Number(log.water);
+      if (log.water !== '' && log.water != null && water >= settings.waterGoal) {
+        passed++;
+      }
+    }
+
+    // Steps goal (optional)
+    if (settings.stepsGoal != null && settings.stepsGoal > 0) {
+      applicable++;
+      const steps = Number(log.steps);
+      if (log.steps !== '' && log.steps != null && steps >= settings.stepsGoal) {
+        passed++;
+      }
+    }
+
+    return { passed, applicable };
+  }
+
+  /** Window ending today: last `days` calendar days inclusive of today. */
+  function windowDateKeys(days) {
+    const today = todayKey();
+    const keys = [];
+    for (let i = days - 1; i >= 0; i--) {
+      keys.push(shiftDate(today, -i));
+    }
+    return keys;
+  }
+
+  function computeWindowStats(days) {
+    const keys = windowDateKeys(days);
+    let logged = 0;
+    let passed = 0;
+    let applicable = 0;
+
+    for (const key of keys) {
+      if (!isDayLogged(key)) continue;
+      logged++;
+      const checks = habitChecksForLog(getLog(key));
+      passed += checks.passed;
+      applicable += checks.applicable;
+    }
+
+    const consistencyPct = Math.round((logged / keys.length) * 100);
+    const habitAvailable = applicable > 0;
+    const habitHitPct = habitAvailable ? Math.round((passed / applicable) * 100) : null;
+
+    let blend;
+    let blendMode;
+    if (habitAvailable) {
+      blend = Math.round(0.4 * consistencyPct + 0.6 * habitHitPct);
+      blendMode = 'blend';
+    } else {
+      blend = consistencyPct;
+      blendMode = 'consistency-only';
+    }
+
+    return {
+      days: keys.length,
+      logged,
+      passed,
+      applicable,
+      consistencyPct,
+      habitHitPct,
+      habitAvailable,
+      blend,
+      blendMode
+    };
+  }
+
+  /** Streak: consecutive logged days ending today, or yesterday if today empty. */
+  function computeLoggingStreak() {
+    const today = todayKey();
+    let start = today;
+    if (!isDayLogged(today)) {
+      const yesterday = shiftDate(today, -1);
+      if (!isDayLogged(yesterday)) return 0;
+      start = yesterday;
+    }
+    let streak = 0;
+    let key = start;
+    while (isDayLogged(key)) {
+      streak++;
+      key = shiftDate(key, -1);
+    }
+    return streak;
+  }
+
+  function formatPct(n) {
+    return n == null ? '—' : `${n}%`;
+  }
+
+  function renderScorePanel() {
+    const streak = computeLoggingStreak();
+    document.getElementById('score-streak').textContent = String(streak);
+    const hint = document.getElementById('score-streak-hint');
+    if (streak === 0) {
+      hint.textContent = 'Log anything today to start a streak';
+    } else if (!isDayLogged(todayKey())) {
+      hint.textContent = 'Today not logged yet — streak counted through yesterday';
+    } else {
+      hint.textContent = 'Consecutive days with any log entry';
+    }
+
+    [7, 30].forEach((days) => {
+      const s = computeWindowStats(days);
+      const blendEl = document.getElementById(`score-${days}-blend`);
+      const blendLabel = document.getElementById(`score-${days}-blend-label`);
+      const consEl = document.getElementById(`score-${days}-consistency`);
+      const habitEl = document.getElementById(`score-${days}-habit`);
+      const detailEl = document.getElementById(`score-${days}-detail`);
+
+      blendEl.textContent = String(s.blend);
+      blendEl.classList.toggle('is-empty', s.logged === 0 && s.blend === 0);
+      if (s.blendMode === 'consistency-only') {
+        blendLabel.textContent = 'Consistency only (no habit checks yet)';
+      } else {
+        blendLabel.textContent = 'Blend score (40% consistency + 60% habit)';
+      }
+
+      consEl.textContent = formatPct(s.consistencyPct);
+      habitEl.textContent = formatPct(s.habitHitPct);
+
+      const habitPart = s.habitAvailable
+        ? `${s.passed}/${s.applicable} habit checks passed`
+        : 'no habit checks yet';
+      detailEl.textContent = `${s.logged} of ${s.days} days logged · ${habitPart}`;
+    });
+  }
+
+  function openScore() {
+    persistCurrent();
+    renderScorePanel();
+    document.getElementById('score-panel').hidden = false;
   }
 
   // --- Sleep duration ---
@@ -1463,6 +1850,7 @@ input[type="number"] { -moz-appearance: textfield; }
   function closePanels() {
     document.getElementById('history-panel').hidden = true;
     document.getElementById('settings-panel').hidden = true;
+    document.getElementById('score-panel').hidden = true;
   }
 
   function renderCalendar() {
@@ -1633,6 +2021,8 @@ input[type="number"] { -moz-appearance: textfield; }
       goToDate(todayKey());
     });
 
+    document.getElementById('btn-score').addEventListener('click', openScore);
+    document.getElementById('btn-close-score').addEventListener('click', closePanels);
     document.getElementById('btn-history').addEventListener('click', openHistory);
     document.getElementById('btn-close-history').addEventListener('click', closePanels);
     document.getElementById('btn-settings').addEventListener('click', openSettings);
