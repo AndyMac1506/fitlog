@@ -8,7 +8,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FitLog" />
   <meta name="description" content="Daily fitness and health tracker" />
-          <title>FitLog (standalone)</title>
+  <!-- manifest omitted in standalone file build -->
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <title>FitLog</title>
   <style>
 :root {
   --bg: #0b0f14;
@@ -331,6 +335,47 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .bp-group input { text-align: center; }
 .bp-sep { color: var(--text-dim); font-weight: 700; }
+
+
+/* Nutrition */
+.calories-display {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+.calories-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.calories-value {
+  font-size: 1.55rem;
+  font-weight: 750;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.calories-target {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nutrition-day-targets-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.nutrition-cal-progress {
+  margin-bottom: 4px;
+}
 
 /* Progress */
 .progress-wrap {
@@ -1184,7 +1229,7 @@ input[type="number"] { -moz-appearance: textfield; }
   line-height: 1.45;
 }
 
-</style>
+  </style>
 </head>
 <body>
   <div id="app">
@@ -1197,6 +1242,9 @@ input[type="number"] { -moz-appearance: textfield; }
         <span id="save-status" class="save-status" aria-live="polite"></span>
         <button type="button" class="icon-btn" id="btn-score" aria-label="Score" title="Score">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6z"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-photos" aria-label="Progress photos" title="Photos">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
         <button type="button" class="icon-btn" id="btn-history" aria-label="History" title="History">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -1302,6 +1350,63 @@ input[type="number"] { -moz-appearance: textfield; }
                 <span class="unit">min</span>
               </div>
             </label>
+          </div>
+        </section>
+
+
+        <!-- Nutrition -->
+        <section class="card" data-section="nutrition">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">🍽️</span>
+            <span class="card-title">Nutrition</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="calories-display" id="calories-display" aria-live="polite">
+              <span class="calories-label">Calories</span>
+              <span class="calories-value" id="calories-value">—</span>
+              <span class="calories-target" id="calories-target-text" hidden></span>
+            </div>
+            <div class="progress-wrap nutrition-cal-progress" id="calories-progress" hidden>
+              <div class="progress-bar"><div class="progress-fill" id="calories-fill"></div></div>
+              <span class="progress-text" id="calories-progress-text"></span>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Protein</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="1" min="0" name="protein" id="protein" placeholder="—" />
+                  <span class="unit">g</span>
+                </div>
+                <div class="progress-wrap" id="protein-progress" hidden>
+                  <div class="progress-bar"><div class="progress-fill" id="protein-fill"></div></div>
+                  <span class="progress-text" id="protein-progress-text"></span>
+                </div>
+              </label>
+              <label class="field">
+                <span class="field-label">Carbs</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="1" min="0" name="carbs" id="carbs" placeholder="—" />
+                  <span class="unit">g</span>
+                </div>
+                <div class="progress-wrap" id="carbs-progress" hidden>
+                  <div class="progress-bar"><div class="progress-fill" id="carbs-fill"></div></div>
+                  <span class="progress-text" id="carbs-progress-text"></span>
+                </div>
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Fat</span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="decimal" step="1" min="0" name="fat" id="fat" placeholder="—" />
+                <span class="unit">g</span>
+              </div>
+              <div class="progress-wrap" id="fat-progress" hidden>
+                <div class="progress-bar"><div class="progress-fill" id="fat-fill"></div></div>
+                <span class="progress-text" id="fat-progress-text"></span>
+              </div>
+            </label>
+            <p class="nutrition-day-targets-hint" id="nutrition-targets-hint"></p>
           </div>
         </section>
 
@@ -1538,7 +1643,116 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
     </aside>
 
-<!-- History panel -->
+
+    <!-- Photos panel -->
+    <aside id="photos-panel" class="panel" hidden aria-label="Progress photos">
+      <div class="panel-header">
+        <h2>Photos</h2>
+        <button type="button" class="icon-btn" id="btn-close-photos" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="photos-tabs" role="tablist">
+        <button type="button" class="photos-tab active" data-photos-tab="capture" role="tab">Capture</button>
+        <button type="button" class="photos-tab" data-photos-tab="compare" role="tab">Compare</button>
+        <button type="button" class="photos-tab" data-photos-tab="review" role="tab">Bot review</button>
+      </div>
+
+      <div class="photos-section active" data-photos-section="capture">
+        <div class="photo-date-row">
+          <label>
+            <span class="field-label">Photo day</span>
+            <input type="date" id="photo-date" />
+          </label>
+          <button type="button" class="btn" id="btn-photo-today" style="align-self:flex-end">Today</button>
+        </div>
+        <div class="photo-angles">
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Front</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-front" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-front">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-front">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-front"></div>
+          </div>
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Side</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-side" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-side">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-side">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-side"></div>
+          </div>
+          <div class="photo-angle-card">
+            <div class="photo-angle-head">
+              <h3>Rear</h3>
+              <div class="photo-angle-actions">
+                <button type="button" class="btn" id="btn-photo-camera-rear" title="Camera">Camera</button>
+                <button type="button" class="btn" id="btn-photo-add-rear">Add</button>
+                <button type="button" class="btn danger-outline" id="btn-photo-del-rear">Del</button>
+              </div>
+            </div>
+            <div class="photo-preview" id="photo-preview-rear"></div>
+          </div>
+        </div>
+        <div class="photos-actions">
+          <button type="button" class="btn danger-outline" id="btn-photo-delete-day">Delete all photos for this day</button>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:0.95rem">Photo days</h3>
+        <div id="photo-days-list" class="photo-days-list"></div>
+        <p class="photos-note">Photos are stored in this device’s IndexedDB (compressed JPEGs), separate from daily logs. Weekly Front / Side / Rear sets work best with consistent lighting and pose.</p>
+        <input type="file" id="photo-file-input" accept="image/*" hidden />
+      </div>
+
+      <div class="photos-section" data-photos-section="compare">
+        <div class="compare-dates">
+          <label>
+            Date A (newer)
+            <input type="date" id="compare-date-a" />
+          </label>
+          <label>
+            Date B (older)
+            <input type="date" id="compare-date-b" />
+          </label>
+        </div>
+        <div class="compare-presets">
+          <button type="button" data-compare-preset="last-week">Last week</button>
+          <button type="button" data-compare-preset="last-month">This time last month</button>
+          <button type="button" data-compare-preset="month-start">Since month start</button>
+          <button type="button" data-compare-preset="year-start">Since year start</button>
+          <button type="button" data-compare-preset="previous">Previous photo day</button>
+        </div>
+        <p class="photos-note" style="margin-top:0">Presets set Date B relative to Date A. If that day has no photos, FitLog snaps to the nearest earlier photo day.</p>
+        <div id="compare-grid" class="compare-grid"></div>
+        <div class="compare-overlay-wrap">
+          <h4>Opacity overlay</h4>
+          <div class="overlay-angle-select">
+            <button type="button" class="active" data-overlay-angle="front">Front</button>
+            <button type="button" data-overlay-angle="side">Side</button>
+            <button type="button" data-overlay-angle="rear">Rear</button>
+          </div>
+          <div id="overlay-stage" class="overlay-stage"><div class="overlay-empty">Select two dates</div></div>
+          <input type="range" id="overlay-slider" class="overlay-slider" min="0" max="100" value="50" aria-label="Overlay opacity" />
+        </div>
+      </div>
+
+      <div class="photos-section" data-photos-section="review">
+        <section class="settings-block">
+          <h3>Prepare for bot review</h3>
+          <p class="settings-note">Packages Date A (current) and Date B (comparison) Front / Side / Rear photos into a zip with a short README. Attach those files in your App Builder chat and ask for a week-over-week summary. Nothing is uploaded automatically.</p>
+          <p class="settings-note">Uses the dates currently set on the <strong>Compare</strong> tab (Date A / Date B). Set those first, then come back here.</p>
+          <button type="button" class="btn primary" id="btn-bot-review">Prepare for bot review</button>
+        </section>
+      </div>
+    </aside>
+
+    <!-- History panel -->
     <aside id="history-panel" class="panel" hidden aria-label="History">
       <div class="panel-header">
         <h2>History</h2>
@@ -1584,6 +1798,25 @@ input[type="number"] { -moz-appearance: textfield; }
           <button type="button" class="btn primary" id="btn-save-settings">Save goals</button>
         </section>
         <section class="settings-block">
+          <h3>Macro targets</h3>
+          <p class="settings-note">Current defaults for new days. Each day stores its own snapshot so past days keep the targets that applied then.</p>
+          <label class="field">
+            <span class="field-label">Protein target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-protein-goal" placeholder="e.g. 200" />
+          </label>
+          <label class="field">
+            <span class="field-label">Carbs target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-carbs-goal" placeholder="e.g. 400" />
+          </label>
+          <label class="field">
+            <span class="field-label">Fat target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-fat-goal" placeholder="e.g. 65" />
+          </label>
+          <p class="settings-note" id="setting-macro-calories">Target calories: —</p>
+          <button type="button" class="btn primary" id="btn-save-macro-targets">Save macro targets</button>
+          <button type="button" class="btn" id="btn-apply-targets-today" style="margin-top:8px">Apply current targets to today</button>
+        </section>
+        <section class="settings-block">
           <h3>Data</h3>
           <button type="button" class="btn" id="btn-export">Export JSON backup</button>
           <button type="button" class="btn" id="btn-import">Import JSON…</button>
@@ -1592,7 +1825,7 @@ input[type="number"] { -moz-appearance: textfield; }
         </section>
         <section class="settings-block">
           <h3>About</h3>
-          <p class="settings-note">Standalone build: daily logs use localStorage. Progress photos (Front / Side / Rear) are on the hosted PWA at https://andymac1506.github.io/fitlog/ — not in this single-file build.</p>
+          <p class="settings-note">FitLog stores daily logs in this browser’s localStorage and progress photos in IndexedDB. Add to Home Screen from Safari for an app-like icon. Works offline after first load.</p>
         </section>
       </div>
     </aside>
@@ -1600,6 +1833,836 @@ input[type="number"] { -moz-appearance: textfield; }
     <div id="toast" class="toast" hidden role="status"></div>
   </div>
   <script>
+/* FitLog progress photos — IndexedDB storage, capture, compare, bot-review pack */
+(function (global) {
+  'use strict';
+
+  const DB_NAME = 'fitlog-photos';
+  const DB_VERSION = 1;
+  const STORE = 'photos';
+  const ANGLES = ['front', 'side', 'rear'];
+  const ANGLE_LABELS = { front: 'Front', side: 'Side', rear: 'Rear' };
+  const MAX_EDGE = 1600;
+  const JPEG_QUALITY = 0.82;
+  const THUMB_EDGE = 320;
+  const THUMB_QUALITY = 0.72;
+
+  /** @type {IDBDatabase|null} */
+  let db = null;
+  /** @type {{ toast: Function, todayKey: Function, formatDisplayDate?: Function }} */
+  let api = { toast: () => {}, todayKey: () => '' };
+
+  let photoDate = '';
+  let compareA = '';
+  let compareB = '';
+  let overlayAngle = 'front';
+  let activeTab = 'capture';
+  /** @type {Record<string, string>} object URLs to revoke */
+  const objectUrls = {};
+
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const database = req.result;
+        if (!database.objectStoreNames.contains(STORE)) {
+          const os = database.createObjectStore(STORE, { keyPath: 'id' });
+          os.createIndex('dateKey', 'dateKey', { unique: false });
+        }
+      };
+      req.onsuccess = () => {
+        db = req.result;
+        resolve(db);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function txStore(mode) {
+    return db.transaction(STORE, mode).objectStore(STORE);
+  }
+
+  function photoId(dateKey, angle) {
+    return `${dateKey}:${angle}`;
+  }
+
+  function getPhoto(dateKey, angle) {
+    return new Promise((resolve, reject) => {
+      const req = txStore('readonly').get(photoId(dateKey, angle));
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function putPhoto(record) {
+    return new Promise((resolve, reject) => {
+      const req = txStore('readwrite').put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function deletePhoto(dateKey, angle) {
+    return new Promise((resolve, reject) => {
+      const req = txStore('readwrite').delete(photoId(dateKey, angle));
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function getAllPhotos() {
+    return new Promise((resolve, reject) => {
+      const req = txStore('readonly').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function listPhotoDates() {
+    const all = await getAllPhotos();
+    /** @type {Record<string, Set<string>>} */
+    const map = {};
+    for (const rec of all) {
+      if (!map[rec.dateKey]) map[rec.dateKey] = new Set();
+      map[rec.dateKey].add(rec.angle);
+    }
+    return Object.keys(map)
+      .sort((a, b) => b.localeCompare(a))
+      .map((dateKey) => {
+        const angles = map[dateKey];
+        const count = ANGLES.filter((a) => angles.has(a)).length;
+        return { dateKey, count, full: count === 3, angles: [...angles] };
+      });
+  }
+
+  async function dayHasAny(dateKey) {
+    for (const angle of ANGLES) {
+      if (await getPhoto(dateKey, angle)) return true;
+    }
+    return false;
+  }
+
+  function revokeUrl(key) {
+    if (objectUrls[key]) {
+      URL.revokeObjectURL(objectUrls[key]);
+      delete objectUrls[key];
+    }
+  }
+
+  function blobUrl(key, blob) {
+    revokeUrl(key);
+    if (!blob) return '';
+    const url = URL.createObjectURL(blob);
+    objectUrls[key] = url;
+    return url;
+  }
+
+  function loadImageFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image load failed'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function compressToJpeg(fileOrBlob, maxEdge, quality) {
+    let bitmap = null;
+    let img = null;
+    let w, h;
+    if (typeof createImageBitmap === 'function') {
+      try {
+        bitmap = await createImageBitmap(fileOrBlob);
+        w = bitmap.width;
+        h = bitmap.height;
+      } catch (_) {
+        bitmap = null;
+      }
+    }
+    if (!bitmap) {
+      img = await loadImageFromBlob(fileOrBlob);
+      w = img.naturalWidth || img.width;
+      h = img.naturalHeight || img.height;
+    }
+    let tw = w;
+    let th = h;
+    const edge = Math.max(w, h);
+    if (edge > maxEdge) {
+      const scale = maxEdge / edge;
+      tw = Math.round(w * scale);
+      th = Math.round(h * scale);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = tw;
+    canvas.height = th;
+    const ctx = canvas.getContext('2d');
+    if (bitmap) {
+      ctx.drawImage(bitmap, 0, 0, tw, th);
+      bitmap.close();
+    } else {
+      ctx.drawImage(img, 0, 0, tw, th);
+    }
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('toBlob failed'))),
+        'image/jpeg',
+        quality
+      );
+    });
+    return { blob, width: tw, height: th };
+  }
+
+  async function saveAngleFromFile(dateKey, angle, file) {
+    const full = await compressToJpeg(file, MAX_EDGE, JPEG_QUALITY);
+    const thumb = await compressToJpeg(full.blob, THUMB_EDGE, THUMB_QUALITY);
+    const now = new Date().toISOString();
+    const existing = await getPhoto(dateKey, angle);
+    await putPhoto({
+      id: photoId(dateKey, angle),
+      dateKey,
+      angle,
+      blob: full.blob,
+      thumb: thumb.blob,
+      width: full.width,
+      height: full.height,
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now
+    });
+  }
+
+  // --- Minimal ZIP (store / no compression) for already-JPEG blobs ---
+  function crc32(buf) {
+    let c = ~0;
+    for (let i = 0; i < buf.length; i++) {
+      c ^= buf[i];
+      for (let k = 0; k < 8; k++) {
+        c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+      }
+    }
+    return ~c >>> 0;
+  }
+
+  function u16(n) {
+    const b = new Uint8Array(2);
+    b[0] = n & 0xff;
+    b[1] = (n >>> 8) & 0xff;
+    return b;
+  }
+
+  function u32(n) {
+    const b = new Uint8Array(4);
+    b[0] = n & 0xff;
+    b[1] = (n >>> 8) & 0xff;
+    b[2] = (n >>> 16) & 0xff;
+    b[3] = (n >>> 24) & 0xff;
+    return b;
+  }
+
+  function concatBytes(parts) {
+    let len = 0;
+    for (const p of parts) len += p.length;
+    const out = new Uint8Array(len);
+    let off = 0;
+    for (const p of parts) {
+      out.set(p, off);
+      off += p.length;
+    }
+    return out;
+  }
+
+  function encodeUtf8(str) {
+    return new TextEncoder().encode(str);
+  }
+
+  async function blobToUint8(blob) {
+    const ab = await blob.arrayBuffer();
+    return new Uint8Array(ab);
+  }
+
+  /**
+   * @param {{ name: string, data: Uint8Array }[]} files
+   */
+  function buildZip(files) {
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    for (const file of files) {
+      const nameBytes = encodeUtf8(file.name);
+      const data = file.data;
+      const crc = crc32(data);
+      const localHeader = concatBytes([
+        u32(0x04034b50),
+        u16(20),
+        u16(0),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(crc),
+        u32(data.length),
+        u32(data.length),
+        u16(nameBytes.length),
+        u16(0),
+        nameBytes
+      ]);
+      localParts.push(localHeader, data);
+      const central = concatBytes([
+        u32(0x02014b50),
+        u16(20),
+        u16(20),
+        u16(0),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(crc),
+        u32(data.length),
+        u32(data.length),
+        u16(nameBytes.length),
+        u16(0),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(0),
+        u32(offset),
+        nameBytes
+      ]);
+      centralParts.push(central);
+      offset += localHeader.length + data.length;
+    }
+
+    const centralDir = concatBytes(centralParts);
+    const end = concatBytes([
+      u32(0x06054b50),
+      u16(0),
+      u16(0),
+      u16(files.length),
+      u16(files.length),
+      u32(centralDir.length),
+      u32(offset),
+      u16(0)
+    ]);
+    return concatBytes([...localParts, centralDir, end]);
+  }
+
+  function downloadBytes(bytes, filename, mime) {
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function parseDateKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function formatDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function shiftDate(key, days) {
+    const d = parseDateKey(key);
+    d.setDate(d.getDate() + days);
+    return formatDateKey(d);
+  }
+
+  function shiftMonth(key, months) {
+    const d = parseDateKey(key);
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, dim));
+    return formatDateKey(d);
+  }
+
+  function beginOfMonth(key) {
+    const d = parseDateKey(key);
+    return formatDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
+  }
+
+  function beginOfYear(key) {
+    const d = parseDateKey(key);
+    return formatDateKey(new Date(d.getFullYear(), 0, 1));
+  }
+
+  async function nearestEarlierWithPhotos(targetKey, excludeKey) {
+    const dates = await listPhotoDates();
+    for (const item of dates) {
+      if (item.dateKey >= targetKey) continue;
+      if (excludeKey && item.dateKey === excludeKey) continue;
+      return item.dateKey;
+    }
+    // If exact target has photos and we want that date itself
+    const exact = dates.find((d) => d.dateKey === targetKey);
+    if (exact && (!excludeKey || exact.dateKey !== excludeKey)) return exact.dateKey;
+    return null;
+  }
+
+  async function resolvePreset(preset, dateA) {
+    let candidate;
+    if (preset === 'last-week') candidate = shiftDate(dateA, -7);
+    else if (preset === 'last-month') candidate = shiftMonth(dateA, -1);
+    else if (preset === 'month-start') candidate = beginOfMonth(dateA);
+    else if (preset === 'year-start') candidate = beginOfYear(dateA);
+    else if (preset === 'previous') {
+      return nearestEarlierWithPhotos(dateA, dateA);
+    } else {
+      return null;
+    }
+
+    if (await dayHasAny(candidate)) return candidate;
+    // Snap to nearest earlier with photos (including candidate if somehow missed)
+    const snapped = await nearestEarlierWithPhotos(
+      shiftDate(candidate, 1), // search dates < candidate+1, i.e. <= candidate
+      dateA
+    );
+    // Prefer exact or earlier than candidate
+    if (snapped && snapped <= candidate) return snapped;
+    // If snapped is after candidate somehow, still use nearest earlier than A
+    return nearestEarlierWithPhotos(dateA, dateA);
+  }
+
+  function setTab(name) {
+    activeTab = name;
+    document.querySelectorAll('.photos-tab').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.photosTab === name);
+    });
+    document.querySelectorAll('.photos-section').forEach((sec) => {
+      sec.classList.toggle('active', sec.dataset.photosSection === name);
+    });
+  }
+
+  async function renderCapture() {
+    const dateInput = document.getElementById('photo-date');
+    if (dateInput && dateInput.value !== photoDate) dateInput.value = photoDate;
+
+    for (const angle of ANGLES) {
+      const preview = document.getElementById(`photo-preview-${angle}`);
+      if (!preview) continue;
+      const rec = await getPhoto(photoDate, angle);
+      if (rec && rec.blob) {
+        const url = blobUrl(`cap-${angle}`, rec.thumb || rec.blob);
+        preview.innerHTML = `<img src="${url}" alt="${ANGLE_LABELS[angle]}" />`;
+      } else {
+        revokeUrl(`cap-${angle}`);
+        preview.innerHTML = `<div class="photo-empty">No ${ANGLE_LABELS[angle].toLowerCase()} photo<br/><span style="font-weight:500;font-size:0.75rem">Tap Add or use camera</span></div>`;
+      }
+    }
+    await renderDaysList();
+  }
+
+  async function renderDaysList() {
+    const list = document.getElementById('photo-days-list');
+    if (!list) return;
+    const dates = await listPhotoDates();
+    if (!dates.length) {
+      list.innerHTML = '<p class="photos-note">No progress photos yet. Pick a date and add Front, Side, and Rear.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    dates.forEach((item) => {
+      const d = parseDateKey(item.dateKey);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'photo-day-item' + (item.dateKey === photoDate ? ' selected' : '');
+      const badgeClass = item.full ? 'full' : 'partial';
+      const badgeText = item.full ? '3/3' : `${item.count}/3`;
+      btn.innerHTML = `
+        <div>
+          <div class="hi-date">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          <div class="photo-day-meta">${item.angles.map((a) => ANGLE_LABELS[a]).join(' · ')}</div>
+        </div>
+        <span class="photo-day-badge ${badgeClass}">${badgeText}</span>
+      `;
+      btn.addEventListener('click', () => {
+        photoDate = item.dateKey;
+        renderCapture();
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  async function renderCompare() {
+    const aInput = document.getElementById('compare-date-a');
+    const bInput = document.getElementById('compare-date-b');
+    if (aInput) aInput.value = compareA || '';
+    if (bInput) bInput.value = compareB || '';
+
+    const grid = document.getElementById('compare-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (!compareA || !compareB) {
+      grid.innerHTML = '<p class="photos-note">Pick Date A and Date B (or use a preset) to compare.</p>';
+      await renderOverlay();
+      return;
+    }
+
+    for (const angle of ANGLES) {
+      const wrap = document.createElement('div');
+      wrap.className = 'compare-angle';
+      wrap.innerHTML = `<div class="compare-angle-title">${ANGLE_LABELS[angle]}</div>`;
+      const pair = document.createElement('div');
+      pair.className = 'compare-pair';
+
+      for (const [slotKey, dateKey, label] of [
+        ['a', compareA, 'A'],
+        ['b', compareB, 'B']
+      ]) {
+        const slot = document.createElement('div');
+        slot.className = 'compare-slot';
+        const rec = await getPhoto(dateKey, angle);
+        if (rec && rec.blob) {
+          const url = blobUrl(`cmp-${slotKey}-${angle}`, rec.blob);
+          slot.innerHTML = `<img src="${url}" alt="${label} ${ANGLE_LABELS[angle]}" /><span class="slot-label">${label}: ${dateKey}</span>`;
+        } else {
+          revokeUrl(`cmp-${slotKey}-${angle}`);
+          slot.innerHTML = `<div class="slot-empty">No ${ANGLE_LABELS[angle].toLowerCase()}<br/>${dateKey}</div>`;
+        }
+        pair.appendChild(slot);
+      }
+      wrap.appendChild(pair);
+      grid.appendChild(wrap);
+    }
+    await renderOverlay();
+  }
+
+  async function renderOverlay() {
+    const stage = document.getElementById('overlay-stage');
+    const slider = document.getElementById('overlay-slider');
+    if (!stage) return;
+
+    document.querySelectorAll('.overlay-angle-select button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.overlayAngle === overlayAngle);
+    });
+
+    if (!compareA || !compareB) {
+      stage.innerHTML = '<div class="overlay-empty">Select two dates to overlay</div>';
+      return;
+    }
+    const recA = await getPhoto(compareA, overlayAngle);
+    const recB = await getPhoto(compareB, overlayAngle);
+    if (!recA || !recB) {
+      stage.innerHTML = `<div class="overlay-empty">Need ${ANGLE_LABELS[overlayAngle]} on both dates</div>`;
+      return;
+    }
+    const urlA = blobUrl('ov-a', recA.blob);
+    const urlB = blobUrl('ov-b', recB.blob);
+    const opacity = slider ? Number(slider.value) / 100 : 0.5;
+    stage.innerHTML = `
+      <img src="${urlA}" alt="A" />
+      <img class="overlay-top" src="${urlB}" alt="B" style="opacity:${opacity}" />
+    `;
+  }
+
+  async function pickLatestPhotoDate() {
+    const dates = await listPhotoDates();
+    if (dates.length) return dates[0].dateKey;
+    return api.todayKey();
+  }
+
+  async function openPhotos() {
+    if (!db) {
+      try {
+        await openDb();
+      } catch (e) {
+        console.error(e);
+        api.toast('Photos unavailable (IndexedDB)');
+        return;
+      }
+    }
+    if (typeof api.persistCurrent === 'function') api.persistCurrent();
+    // Close sibling panels
+    ['history-panel', 'settings-panel', 'score-panel'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    photoDate = photoDate || (await pickLatestPhotoDate());
+    compareA = compareA || photoDate;
+    if (!compareB) {
+      compareB = (await nearestEarlierWithPhotos(compareA, compareA)) || '';
+    }
+    document.getElementById('photos-panel').hidden = false;
+    setTab(activeTab || 'capture');
+    await renderCapture();
+    await renderCompare();
+  }
+
+  function closePhotos() {
+    document.getElementById('photos-panel').hidden = true;
+  }
+
+  function triggerFilePick(angle, useCamera) {
+    const input = document.getElementById('photo-file-input');
+    if (!input) return;
+    input.dataset.angle = angle;
+    if (useCamera) {
+      input.setAttribute('capture', 'environment');
+    } else {
+      input.removeAttribute('capture');
+    }
+    input.value = '';
+    input.click();
+  }
+
+  async function onFileChosen(file, angle) {
+    if (!file || !angle) return;
+    if (!file.type.startsWith('image/')) {
+      api.toast('Please choose an image');
+      return;
+    }
+    try {
+      api.toast('Saving…');
+      await saveAngleFromFile(photoDate, angle, file);
+      api.toast(`${ANGLE_LABELS[angle]} saved`);
+      await renderCapture();
+      if (activeTab === 'compare') await renderCompare();
+    } catch (e) {
+      console.error(e);
+      api.toast('Could not save photo');
+    }
+  }
+
+  async function deleteAngle(angle) {
+    if (!confirm(`Delete ${ANGLE_LABELS[angle]} photo for ${photoDate}?`)) return;
+    await deletePhoto(photoDate, angle);
+    revokeUrl(`cap-${angle}`);
+    api.toast('Deleted');
+    await renderCapture();
+  }
+
+  async function deleteDay() {
+    if (!confirm(`Delete all progress photos for ${photoDate}?`)) return;
+    for (const angle of ANGLES) {
+      await deletePhoto(photoDate, angle);
+      revokeUrl(`cap-${angle}`);
+    }
+    api.toast('Day photos deleted');
+    const dates = await listPhotoDates();
+    photoDate = dates.length ? dates[0].dateKey : api.todayKey();
+    await renderCapture();
+  }
+
+  async function applyPreset(preset) {
+    if (!compareA) {
+      compareA = photoDate || (await pickLatestPhotoDate());
+    }
+    let ideal = null;
+    if (preset === 'last-week') ideal = shiftDate(compareA, -7);
+    else if (preset === 'last-month') ideal = shiftMonth(compareA, -1);
+    else if (preset === 'month-start') ideal = beginOfMonth(compareA);
+    else if (preset === 'year-start') ideal = beginOfYear(compareA);
+    else if (preset === 'previous') ideal = null;
+
+    const resolved = await resolvePreset(preset, compareA);
+    if (!resolved) {
+      api.toast('No earlier photo day found');
+      compareB = '';
+    } else {
+      compareB = resolved;
+      if (ideal && resolved !== ideal) {
+        api.toast(`No photos on ${ideal} — snapped to ${resolved}`);
+      }
+    }
+    await renderCompare();
+  }
+
+  async function prepareBotReview() {
+    const dateNew = compareA || photoDate;
+    let dateOld = compareB;
+    if (!dateOld) {
+      dateOld = await nearestEarlierWithPhotos(dateNew, dateNew);
+    }
+    if (!dateNew) {
+      api.toast('Pick a current photo day first');
+      return;
+    }
+    if (!dateOld) {
+      api.toast('Need a previous photo day to compare');
+      return;
+    }
+
+    const files = [];
+    let count = 0;
+    for (const angle of ANGLES) {
+      const recNew = await getPhoto(dateNew, angle);
+      const recOld = await getPhoto(dateOld, angle);
+      if (recNew && recNew.blob) {
+        files.push({
+          name: `${dateNew}-${angle}.jpg`,
+          data: await blobToUint8(recNew.blob)
+        });
+        count++;
+      }
+      if (recOld && recOld.blob) {
+        files.push({
+          name: `${dateOld}-${angle}.jpg`,
+          data: await blobToUint8(recOld.blob)
+        });
+        count++;
+      }
+    }
+    if (!count) {
+      api.toast('No photos found for those dates');
+      return;
+    }
+
+    const readme = `FitLog progress photo review pack
+================================
+Current week (Date A): ${dateNew}
+Comparison week (Date B): ${dateOld}
+
+Files are named YYYY-MM-DD-{front|side|rear}.jpg
+
+How to get a bot review
+-----------------------
+1. Open your FitLog / App Builder chat with Grok Bot.
+2. Attach the images from this zip (or the whole zip if the chat accepts it).
+3. Ask for a week-over-week progress summary comparing ${dateNew} to ${dateOld}.
+   Mention Front / Side / Rear angles.
+
+Tips
+----
+- Same lighting, pose, distance, and time of day make comparisons more useful.
+- Photos stay on your device; this pack is only what you choose to share in chat.
+`;
+    files.push({ name: 'README.txt', data: encodeUtf8(readme) });
+
+    try {
+      const zipBytes = buildZip(files);
+      downloadBytes(zipBytes, `fitlog-photos-${dateNew}-vs-${dateOld}.zip`, 'application/zip');
+      api.toast('Review pack downloaded');
+    } catch (e) {
+      console.error(e);
+      // Fallback: download individually
+      for (const f of files) {
+        if (f.name.endsWith('.txt')) {
+          downloadBytes(f.data, f.name, 'text/plain');
+        } else {
+          downloadBytes(f.data, f.name, 'image/jpeg');
+        }
+      }
+      api.toast('Downloaded files (zip failed)');
+    }
+  }
+
+  function bindUi() {
+    document.getElementById('btn-photos')?.addEventListener('click', () => {
+      openPhotos();
+    });
+    document.getElementById('btn-close-photos')?.addEventListener('click', closePhotos);
+
+    document.querySelectorAll('.photos-tab').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        setTab(btn.dataset.photosTab);
+        if (btn.dataset.photosTab === 'capture') await renderCapture();
+        if (btn.dataset.photosTab === 'compare') await renderCompare();
+      });
+    });
+
+    document.getElementById('photo-date')?.addEventListener('change', async (e) => {
+      photoDate = e.target.value || api.todayKey();
+      await renderCapture();
+    });
+
+    document.getElementById('btn-photo-today')?.addEventListener('click', async () => {
+      photoDate = api.todayKey();
+      await renderCapture();
+    });
+
+    ANGLES.forEach((angle) => {
+      document.getElementById(`btn-photo-add-${angle}`)?.addEventListener('click', () => {
+        triggerFilePick(angle, false);
+      });
+      document.getElementById(`btn-photo-camera-${angle}`)?.addEventListener('click', () => {
+        triggerFilePick(angle, true);
+      });
+      document.getElementById(`btn-photo-del-${angle}`)?.addEventListener('click', () => {
+        deleteAngle(angle);
+      });
+    });
+
+    document.getElementById('photo-file-input')?.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const angle = e.target.dataset.angle;
+      if (file) await onFileChosen(file, angle);
+      e.target.value = '';
+    });
+
+    document.getElementById('btn-photo-delete-day')?.addEventListener('click', deleteDay);
+
+    document.getElementById('compare-date-a')?.addEventListener('change', async (e) => {
+      compareA = e.target.value;
+      await renderCompare();
+    });
+    document.getElementById('compare-date-b')?.addEventListener('change', async (e) => {
+      compareB = e.target.value;
+      await renderCompare();
+    });
+
+    document.querySelectorAll('[data-compare-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => applyPreset(btn.dataset.comparePreset));
+    });
+
+    document.querySelectorAll('[data-overlay-angle]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        overlayAngle = btn.dataset.overlayAngle;
+        await renderOverlay();
+      });
+    });
+
+    document.getElementById('overlay-slider')?.addEventListener('input', () => {
+      const top = document.querySelector('#overlay-stage .overlay-top');
+      const slider = document.getElementById('overlay-slider');
+      if (top && slider) top.style.opacity = String(Number(slider.value) / 100);
+    });
+
+    document.getElementById('btn-bot-review')?.addEventListener('click', prepareBotReview);
+
+    // Sync compare A from capture date when switching tabs
+    document.querySelector('.photos-tab[data-photos-tab="compare"]')?.addEventListener('click', () => {
+      if (photoDate) compareA = photoDate;
+    });
+  }
+
+  async function init(options) {
+    api = Object.assign(api, options || {});
+    photoDate = api.todayKey();
+    try {
+      await openDb();
+    } catch (e) {
+      console.warn('FitLog photos DB unavailable', e);
+    }
+    bindUi();
+  }
+
+  function isOpen() {
+    const panel = document.getElementById('photos-panel');
+    return panel && !panel.hidden;
+  }
+
+  global.FitLogPhotos = {
+    init,
+    open: openPhotos,
+    close: closePhotos,
+    isOpen
+  };
+})(window);
+
 (function () {
   'use strict';
 
@@ -1609,15 +2672,21 @@ input[type="number"] { -moz-appearance: textfield; }
   const FIELD_KEYS = [
     'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
     'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'protein', 'carbs', 'fat',
     'supplementsMorning', 'supplementsNoon', 'supplementsNight',
     'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
     'adherence', 'restingHR', 'bpSystolic', 'bpDiastolic', 'offPlanMeals', 'notes'
   ];
 
+  const TARGET_KEYS = ['targetProtein', 'targetCarbs', 'targetFat', 'targetCalories'];
+
   /** @type {{ logs: Record<string, object>, version: number }} */
   let store = { version: 1, logs: {} };
-  /** @type {{ waterGoal: number|null, stepsGoal: number|null }} */
-  let settings = { waterGoal: null, stepsGoal: null };
+  /** @type {{ waterGoal: number|null, stepsGoal: number|null, proteinGoal: number|null, carbsGoal: number|null, fatGoal: number|null }} */
+  let settings = { waterGoal: null, stepsGoal: null, proteinGoal: null, carbsGoal: null, fatGoal: null };
+
+  /** Day-level macro target snapshot for the currently viewed date */
+  let currentDayTargets = { targetProtein: '', targetCarbs: '', targetFat: '', targetCalories: '' };
 
   let currentDate = todayKey();
   let calMonth = new Date();
@@ -1700,7 +2769,10 @@ input[type="number"] { -moz-appearance: textfield; }
         const p = JSON.parse(raw);
         settings = {
           waterGoal: p.waterGoal != null && p.waterGoal !== '' ? Number(p.waterGoal) : null,
-          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null
+          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null,
+          proteinGoal: p.proteinGoal != null && p.proteinGoal !== '' ? Number(p.proteinGoal) : null,
+          carbsGoal: p.carbsGoal != null && p.carbsGoal !== '' ? Number(p.carbsGoal) : null,
+          fatGoal: p.fatGoal != null && p.fatGoal !== '' ? Number(p.fatGoal) : null
         };
       }
     } catch (e) {
@@ -1724,6 +2796,13 @@ input[type="number"] { -moz-appearance: textfield; }
       sleepQuality: '',
       steps: '',
       cardio: '',
+      protein: '',
+      carbs: '',
+      fat: '',
+      targetProtein: '',
+      targetCarbs: '',
+      targetFat: '',
+      targetCalories: '',
       supplementsMorning: '',
       supplementsNoon: '',
       supplementsNight: '',
@@ -1741,6 +2820,63 @@ input[type="number"] { -moz-appearance: textfield; }
     };
   }
 
+  function calcCalories(protein, carbs, fat) {
+    const hasP = protein !== '' && protein != null;
+    const hasC = carbs !== '' && carbs != null;
+    const hasF = fat !== '' && fat != null;
+    if (!hasP && !hasC && !hasF) return null;
+    const p = hasP ? Number(protein) : 0;
+    const c = hasC ? Number(carbs) : 0;
+    const f = hasF ? Number(fat) : 0;
+    if ([p, c, f].some((n) => Number.isNaN(n))) return null;
+    return Math.round(4 * p + 4 * c + 9 * f);
+  }
+
+  function snapshotTargetsFromSettings() {
+    const tp = settings.proteinGoal;
+    const tc = settings.carbsGoal;
+    const tf = settings.fatGoal;
+    const cal = calcCalories(
+      tp != null ? tp : '',
+      tc != null ? tc : '',
+      tf != null ? tf : ''
+    );
+    return {
+      targetProtein: tp != null ? tp : '',
+      targetCarbs: tc != null ? tc : '',
+      targetFat: tf != null ? tf : '',
+      targetCalories: cal == null ? '' : cal
+    };
+  }
+
+  function storedHasTargetSnapshot(dateKey) {
+    const stored = store.logs[dateKey];
+    if (!stored || typeof stored !== 'object') return false;
+    return TARGET_KEYS.some((k) => Object.prototype.hasOwnProperty.call(stored, k));
+  }
+
+  function resolveTargetsForDay(dateKey) {
+    if (storedHasTargetSnapshot(dateKey)) {
+      const stored = store.logs[dateKey];
+      const tp = stored.targetProtein != null ? stored.targetProtein : '';
+      const tc = stored.targetCarbs != null ? stored.targetCarbs : '';
+      const tf = stored.targetFat != null ? stored.targetFat : '';
+      let tcal = stored.targetCalories;
+      if (tcal === undefined || tcal === null || tcal === '') {
+        const calc = calcCalories(tp, tc, tf);
+        tcal = calc == null ? '' : calc;
+      }
+      return {
+        targetProtein: tp,
+        targetCarbs: tc,
+        targetFat: tf,
+        targetCalories: tcal
+      };
+    }
+    return snapshotTargetsFromSettings();
+  }
+
+
   function getLog(dateKey) {
     return Object.assign(emptyLog(), store.logs[dateKey] || {});
   }
@@ -1756,7 +2892,8 @@ input[type="number"] { -moz-appearance: textfield; }
   function fillScore(log) {
     const tracked = [
       'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
-      'steps', 'cardio', 'supplementsMorning', 'supplementsNoon', 'supplementsNight',
+      'steps', 'cardio', 'protein', 'carbs', 'fat',
+      'supplementsMorning', 'supplementsNoon', 'supplementsNight',
       'training', 'desireToTrain', 'energyInGym',
       'energyOutsideGym', 'adherence', 'restingHR', 'bpSystolic', 'notes'
     ];
@@ -2005,6 +3142,13 @@ input[type="number"] { -moz-appearance: textfield; }
   function loadFormForDate(dateKey) {
     const log = getLog(dateKey);
     durationManual = !!log.sleepDurationManual;
+    const hadSnapshot = storedHasTargetSnapshot(dateKey);
+    currentDayTargets = resolveTargetsForDay(dateKey);
+    // Existing logged days without a snapshot: lock current settings onto that day once
+    if (!hadSnapshot && store.logs[dateKey] && !isLogEmpty(store.logs[dateKey])) {
+      Object.assign(store.logs[dateKey], currentDayTargets);
+      saveStore();
+    }
 
     setVal('bodyweight', log.bodyweight);
     setVal('weighInTime', log.weighInTime);
@@ -2015,6 +3159,9 @@ input[type="number"] { -moz-appearance: textfield; }
     setVal('sleepQuality', log.sleepQuality);
     setVal('steps', log.steps);
     setVal('cardio', log.cardio);
+    setVal('protein', log.protein);
+    setVal('carbs', log.carbs);
+    setVal('fat', log.fat);
     setVal('desireToTrain', log.desireToTrain);
     setVal('energyInGym', log.energyInGym);
     setVal('energyOutsideGym', log.energyOutsideGym);
@@ -2038,6 +3185,7 @@ input[type="number"] { -moz-appearance: textfield; }
     if (!durationManual) maybeAutoDuration();
     updateDurationHint();
     updateProgressBars();
+    updateNutritionUI();
     updateDateNav();
   }
 
@@ -2049,6 +3197,10 @@ input[type="number"] { -moz-appearance: textfield; }
 
   function readForm() {
     const trainingEl = document.querySelector('input[name="training"]:checked');
+    // Lock in targets for this day on first save if not already snapshotted
+    if (!storedHasTargetSnapshot(currentDate)) {
+      currentDayTargets = resolveTargetsForDay(currentDate);
+    }
     return {
       bodyweight: document.getElementById('bodyweight').value,
       weighInTime: document.getElementById('weighInTime').value,
@@ -2060,6 +3212,13 @@ input[type="number"] { -moz-appearance: textfield; }
       sleepQuality: document.getElementById('sleepQuality').value,
       steps: document.getElementById('steps').value,
       cardio: document.getElementById('cardio').value,
+      protein: document.getElementById('protein').value,
+      carbs: document.getElementById('carbs').value,
+      fat: document.getElementById('fat').value,
+      targetProtein: currentDayTargets.targetProtein,
+      targetCarbs: currentDayTargets.targetCarbs,
+      targetFat: currentDayTargets.targetFat,
+      targetCalories: currentDayTargets.targetCalories,
       supplementsMorning: (document.querySelector('input[name="supplementsMorning"]:checked') || {}).value || '',
       supplementsNoon: (document.querySelector('input[name="supplementsNoon"]:checked') || {}).value || '',
       supplementsNight: (document.querySelector('input[name="supplementsNight"]:checked') || {}).value || '',
@@ -2151,6 +3310,124 @@ input[type="number"] { -moz-appearance: textfield; }
     }
   }
 
+  function setMacroProgress(kind, actualRaw, targetRaw, unit) {
+    const wrap = document.getElementById(kind + '-progress');
+    if (!wrap) return;
+    const targetNum = targetRaw === '' || targetRaw == null ? null : Number(targetRaw);
+    if (targetNum == null || Number.isNaN(targetNum) || targetNum <= 0) {
+      wrap.hidden = true;
+      return;
+    }
+    const actualEmpty = actualRaw === '' || actualRaw == null;
+    const actual = actualEmpty ? 0 : Number(actualRaw);
+    if (Number.isNaN(actual)) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    const pct = Math.min(100, Math.round((actual / targetNum) * 100));
+    const fill = document.getElementById(kind + '-fill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('over', actual >= targetNum);
+    const shown = actualEmpty ? 0 : actual;
+    document.getElementById(kind + '-progress-text').textContent =
+      `${shown} / ${targetNum}${unit ? ' ' + unit : ''}`;
+  }
+
+  function updateNutritionUI() {
+    const proteinEl = document.getElementById('protein');
+    const carbsEl = document.getElementById('carbs');
+    const fatEl = document.getElementById('fat');
+    if (!proteinEl) return;
+
+    const p = proteinEl.value;
+    const c = carbsEl.value;
+    const f = fatEl.value;
+    const cal = calcCalories(p, c, f);
+    const calVal = document.getElementById('calories-value');
+    calVal.textContent = cal == null ? '—' : String(cal);
+
+    const tp = currentDayTargets.targetProtein;
+    const tc = currentDayTargets.targetCarbs;
+    const tf = currentDayTargets.targetFat;
+    let tcal = currentDayTargets.targetCalories;
+    if (tcal === '' || tcal == null) {
+      const derived = calcCalories(tp, tc, tf);
+      tcal = derived == null ? '' : derived;
+    }
+
+    setMacroProgress('protein', p, tp, 'g');
+    setMacroProgress('carbs', c, tc, 'g');
+    setMacroProgress('fat', f, tf, 'g');
+    setMacroProgress('calories', cal == null ? '' : cal, tcal, 'kcal');
+
+    const hint = document.getElementById('nutrition-targets-hint');
+    const hasAnyTarget = [tp, tc, tf].some((v) => v !== '' && v != null);
+    if (!hasAnyTarget) {
+      hint.textContent = 'Set macro targets in Settings to see daily progress bars. Targets lock to each day when you first log it.';
+    } else {
+      const bits = [];
+      if (tp !== '' && tp != null) bits.push(`P ${tp}g`);
+      if (tc !== '' && tc != null) bits.push(`C ${tc}g`);
+      if (tf !== '' && tf != null) bits.push(`F ${tf}g`);
+      if (tcal !== '' && tcal != null) bits.push(`${tcal} kcal`);
+      hint.textContent = `This day’s targets: ${bits.join(' · ')}`;
+    }
+
+    const calTargetText = document.getElementById('calories-target-text');
+    if (tcal !== '' && tcal != null) {
+      calTargetText.hidden = false;
+      calTargetText.textContent = cal == null ? `target ${tcal}` : `/ ${tcal}`;
+    } else {
+      calTargetText.hidden = true;
+    }
+  }
+
+  function updateSettingsMacroCaloriesPreview() {
+    const p = document.getElementById('setting-protein-goal').value;
+    const c = document.getElementById('setting-carbs-goal').value;
+    const f = document.getElementById('setting-fat-goal').value;
+    const cal = calcCalories(p, c, f);
+    const el = document.getElementById('setting-macro-calories');
+    if (el) el.textContent = 'Target calories: ' + (cal == null ? '—' : String(cal));
+  }
+
+  function readMacroGoalsFromSettingsForm() {
+    function numOrNull(id) {
+      const v = document.getElementById(id).value;
+      return v === '' ? null : Number(v);
+    }
+    return {
+      proteinGoal: numOrNull('setting-protein-goal'),
+      carbsGoal: numOrNull('setting-carbs-goal'),
+      fatGoal: numOrNull('setting-fat-goal')
+    };
+  }
+
+  function saveMacroTargetsFromForm() {
+    const macros = readMacroGoalsFromSettingsForm();
+    settings.proteinGoal = macros.proteinGoal;
+    settings.carbsGoal = macros.carbsGoal;
+    settings.fatGoal = macros.fatGoal;
+    saveSettings();
+
+    const snap = snapshotTargetsFromSettings();
+    const today = todayKey();
+
+    // Changing settings updates today’s snapshot only — never past days
+    if (store.logs[today]) {
+      Object.assign(store.logs[today], snap);
+      saveStore();
+    }
+    if (currentDate === today) {
+      currentDayTargets = snap;
+      updateNutritionUI();
+    }
+
+    toast('Macro targets saved');
+    updateSettingsMacroCaloriesPreview();
+  }
+
   function formatNum(n) {
     return Number(n).toLocaleString();
   }
@@ -2189,6 +3466,13 @@ input[type="number"] { -moz-appearance: textfield; }
       settings.waterGoal != null ? settings.waterGoal : '';
     document.getElementById('setting-steps-goal').value =
       settings.stepsGoal != null ? settings.stepsGoal : '';
+    document.getElementById('setting-protein-goal').value =
+      settings.proteinGoal != null ? settings.proteinGoal : '';
+    document.getElementById('setting-carbs-goal').value =
+      settings.carbsGoal != null ? settings.carbsGoal : '';
+    document.getElementById('setting-fat-goal').value =
+      settings.fatGoal != null ? settings.fatGoal : '';
+    updateSettingsMacroCaloriesPreview();
     document.getElementById('settings-panel').hidden = false;
   }
 
@@ -2261,6 +3545,8 @@ input[type="number"] { -moz-appearance: textfield; }
       const bits = [];
       if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
       if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
+      const dayCal = calcCalories(log.protein, log.carbs, log.fat);
+      if (dayCal != null) bits.push(`${dayCal} kcal`);
       if (log.training) bits.push(`train: ${log.training}`);
       btn.innerHTML = `
         <div>
@@ -2316,7 +3602,10 @@ input[type="number"] { -moz-appearance: textfield; }
           if (data.settings) {
             settings = {
               waterGoal: data.settings.waterGoal ?? settings.waterGoal,
-              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal
+              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal,
+              proteinGoal: data.settings.proteinGoal ?? settings.proteinGoal,
+              carbsGoal: data.settings.carbsGoal ?? settings.carbsGoal,
+              fatGoal: data.settings.fatGoal ?? settings.fatGoal
             };
             saveSettings();
           }
@@ -2332,7 +3621,10 @@ input[type="number"] { -moz-appearance: textfield; }
           if (data.settings) {
             settings = {
               waterGoal: data.settings.waterGoal != null ? data.settings.waterGoal : null,
-              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null
+              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null,
+              proteinGoal: data.settings.proteinGoal != null ? data.settings.proteinGoal : null,
+              carbsGoal: data.settings.carbsGoal != null ? data.settings.carbsGoal : null,
+              fatGoal: data.settings.fatGoal != null ? data.settings.fatGoal : null
             };
             saveSettings();
           }
@@ -2409,6 +3701,9 @@ input[type="number"] { -moz-appearance: textfield; }
         }
       }
       if (e.target.id === 'water' || e.target.id === 'steps') updateProgressBars();
+      if (e.target.id === 'protein' || e.target.id === 'carbs' || e.target.id === 'fat') {
+        updateNutritionUI();
+      }
       scheduleSave();
     });
     form.addEventListener('change', (e) => {
@@ -2481,6 +3776,38 @@ input[type="number"] { -moz-appearance: textfield; }
       toast('Goals saved');
     });
 
+    ['setting-protein-goal', 'setting-carbs-goal', 'setting-fat-goal'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', updateSettingsMacroCaloriesPreview);
+    });
+    document.getElementById('btn-save-macro-targets').addEventListener('click', () => {
+      saveMacroTargetsFromForm();
+    });
+    document.getElementById('btn-apply-targets-today').addEventListener('click', () => {
+      // Save settings defaults first, then force today’s snapshot only
+      const macros = readMacroGoalsFromSettingsForm();
+      settings.proteinGoal = macros.proteinGoal;
+      settings.carbsGoal = macros.carbsGoal;
+      settings.fatGoal = macros.fatGoal;
+      saveSettings();
+      const snap = snapshotTargetsFromSettings();
+      const today = todayKey();
+      if (store.logs[today]) {
+        Object.assign(store.logs[today], snap);
+        saveStore();
+      }
+      if (currentDate === today) {
+        currentDayTargets = snap;
+        const data = readForm();
+        if (!isLogEmpty(data)) {
+          store.logs[today] = data;
+          saveStore();
+        }
+        updateNutritionUI();
+      }
+      toast('Applied current targets to today');
+      updateSettingsMacroCaloriesPreview();
+    });
+
     document.getElementById('btn-export').addEventListener('click', exportJSON);
     document.getElementById('btn-import').addEventListener('click', () => {
       document.getElementById('import-file').click();
@@ -2545,6 +3872,6 @@ input[type="number"] { -moz-appearance: textfield; }
   init();
 })();
 
-</script>
+  </script>
 </body>
 </html>

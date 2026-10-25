@@ -320,6 +320,47 @@ input[type="number"] { -moz-appearance: textfield; }
 .bp-group input { text-align: center; }
 .bp-sep { color: var(--text-dim); font-weight: 700; }
 
+
+/* Nutrition */
+.calories-display {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+}
+.calories-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.calories-value {
+  font-size: 1.55rem;
+  font-weight: 750;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.calories-target {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nutrition-day-targets-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.nutrition-cal-progress {
+  margin-bottom: 4px;
+}
+
 /* Progress */
 .progress-wrap {
   display: flex;

@@ -7,15 +7,21 @@
   const FIELD_KEYS = [
     'bodyweight', 'weighInTime', 'water', 'bedtime', 'wakeTime',
     'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'protein', 'carbs', 'fat',
     'supplementsMorning', 'supplementsNoon', 'supplementsNight',
     'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
     'adherence', 'restingHR', 'bpSystolic', 'bpDiastolic', 'offPlanMeals', 'notes'
   ];
 
+  const TARGET_KEYS = ['targetProtein', 'targetCarbs', 'targetFat', 'targetCalories'];
+
   /** @type {{ logs: Record<string, object>, version: number }} */
   let store = { version: 1, logs: {} };
-  /** @type {{ waterGoal: number|null, stepsGoal: number|null }} */
-  let settings = { waterGoal: null, stepsGoal: null };
+  /** @type {{ waterGoal: number|null, stepsGoal: number|null, proteinGoal: number|null, carbsGoal: number|null, fatGoal: number|null }} */
+  let settings = { waterGoal: null, stepsGoal: null, proteinGoal: null, carbsGoal: null, fatGoal: null };
+
+  /** Day-level macro target snapshot for the currently viewed date */
+  let currentDayTargets = { targetProtein: '', targetCarbs: '', targetFat: '', targetCalories: '' };
 
   let currentDate = todayKey();
   let calMonth = new Date();
@@ -98,7 +104,10 @@
         const p = JSON.parse(raw);
         settings = {
           waterGoal: p.waterGoal != null && p.waterGoal !== '' ? Number(p.waterGoal) : null,
-          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null
+          stepsGoal: p.stepsGoal != null && p.stepsGoal !== '' ? Number(p.stepsGoal) : null,
+          proteinGoal: p.proteinGoal != null && p.proteinGoal !== '' ? Number(p.proteinGoal) : null,
+          carbsGoal: p.carbsGoal != null && p.carbsGoal !== '' ? Number(p.carbsGoal) : null,
+          fatGoal: p.fatGoal != null && p.fatGoal !== '' ? Number(p.fatGoal) : null
         };
       }
     } catch (e) {
@@ -122,6 +131,13 @@
       sleepQuality: '',
       steps: '',
       cardio: '',
+      protein: '',
+      carbs: '',
+      fat: '',
+      targetProtein: '',
+      targetCarbs: '',
+      targetFat: '',
+      targetCalories: '',
       supplementsMorning: '',
       supplementsNoon: '',
       supplementsNight: '',
@@ -139,6 +155,63 @@
     };
   }
 
+  function calcCalories(protein, carbs, fat) {
+    const hasP = protein !== '' && protein != null;
+    const hasC = carbs !== '' && carbs != null;
+    const hasF = fat !== '' && fat != null;
+    if (!hasP && !hasC && !hasF) return null;
+    const p = hasP ? Number(protein) : 0;
+    const c = hasC ? Number(carbs) : 0;
+    const f = hasF ? Number(fat) : 0;
+    if ([p, c, f].some((n) => Number.isNaN(n))) return null;
+    return Math.round(4 * p + 4 * c + 9 * f);
+  }
+
+  function snapshotTargetsFromSettings() {
+    const tp = settings.proteinGoal;
+    const tc = settings.carbsGoal;
+    const tf = settings.fatGoal;
+    const cal = calcCalories(
+      tp != null ? tp : '',
+      tc != null ? tc : '',
+      tf != null ? tf : ''
+    );
+    return {
+      targetProtein: tp != null ? tp : '',
+      targetCarbs: tc != null ? tc : '',
+      targetFat: tf != null ? tf : '',
+      targetCalories: cal == null ? '' : cal
+    };
+  }
+
+  function storedHasTargetSnapshot(dateKey) {
+    const stored = store.logs[dateKey];
+    if (!stored || typeof stored !== 'object') return false;
+    return TARGET_KEYS.some((k) => Object.prototype.hasOwnProperty.call(stored, k));
+  }
+
+  function resolveTargetsForDay(dateKey) {
+    if (storedHasTargetSnapshot(dateKey)) {
+      const stored = store.logs[dateKey];
+      const tp = stored.targetProtein != null ? stored.targetProtein : '';
+      const tc = stored.targetCarbs != null ? stored.targetCarbs : '';
+      const tf = stored.targetFat != null ? stored.targetFat : '';
+      let tcal = stored.targetCalories;
+      if (tcal === undefined || tcal === null || tcal === '') {
+        const calc = calcCalories(tp, tc, tf);
+        tcal = calc == null ? '' : calc;
+      }
+      return {
+        targetProtein: tp,
+        targetCarbs: tc,
+        targetFat: tf,
+        targetCalories: tcal
+      };
+    }
+    return snapshotTargetsFromSettings();
+  }
+
+
   function getLog(dateKey) {
     return Object.assign(emptyLog(), store.logs[dateKey] || {});
   }
@@ -154,7 +227,8 @@
   function fillScore(log) {
     const tracked = [
       'bodyweight', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
-      'steps', 'cardio', 'supplementsMorning', 'supplementsNoon', 'supplementsNight',
+      'steps', 'cardio', 'protein', 'carbs', 'fat',
+      'supplementsMorning', 'supplementsNoon', 'supplementsNight',
       'training', 'desireToTrain', 'energyInGym',
       'energyOutsideGym', 'adherence', 'restingHR', 'bpSystolic', 'notes'
     ];
@@ -403,6 +477,13 @@
   function loadFormForDate(dateKey) {
     const log = getLog(dateKey);
     durationManual = !!log.sleepDurationManual;
+    const hadSnapshot = storedHasTargetSnapshot(dateKey);
+    currentDayTargets = resolveTargetsForDay(dateKey);
+    // Existing logged days without a snapshot: lock current settings onto that day once
+    if (!hadSnapshot && store.logs[dateKey] && !isLogEmpty(store.logs[dateKey])) {
+      Object.assign(store.logs[dateKey], currentDayTargets);
+      saveStore();
+    }
 
     setVal('bodyweight', log.bodyweight);
     setVal('weighInTime', log.weighInTime);
@@ -413,6 +494,9 @@
     setVal('sleepQuality', log.sleepQuality);
     setVal('steps', log.steps);
     setVal('cardio', log.cardio);
+    setVal('protein', log.protein);
+    setVal('carbs', log.carbs);
+    setVal('fat', log.fat);
     setVal('desireToTrain', log.desireToTrain);
     setVal('energyInGym', log.energyInGym);
     setVal('energyOutsideGym', log.energyOutsideGym);
@@ -436,6 +520,7 @@
     if (!durationManual) maybeAutoDuration();
     updateDurationHint();
     updateProgressBars();
+    updateNutritionUI();
     updateDateNav();
   }
 
@@ -447,6 +532,10 @@
 
   function readForm() {
     const trainingEl = document.querySelector('input[name="training"]:checked');
+    // Lock in targets for this day on first save if not already snapshotted
+    if (!storedHasTargetSnapshot(currentDate)) {
+      currentDayTargets = resolveTargetsForDay(currentDate);
+    }
     return {
       bodyweight: document.getElementById('bodyweight').value,
       weighInTime: document.getElementById('weighInTime').value,
@@ -458,6 +547,13 @@
       sleepQuality: document.getElementById('sleepQuality').value,
       steps: document.getElementById('steps').value,
       cardio: document.getElementById('cardio').value,
+      protein: document.getElementById('protein').value,
+      carbs: document.getElementById('carbs').value,
+      fat: document.getElementById('fat').value,
+      targetProtein: currentDayTargets.targetProtein,
+      targetCarbs: currentDayTargets.targetCarbs,
+      targetFat: currentDayTargets.targetFat,
+      targetCalories: currentDayTargets.targetCalories,
       supplementsMorning: (document.querySelector('input[name="supplementsMorning"]:checked') || {}).value || '',
       supplementsNoon: (document.querySelector('input[name="supplementsNoon"]:checked') || {}).value || '',
       supplementsNight: (document.querySelector('input[name="supplementsNight"]:checked') || {}).value || '',
@@ -549,6 +645,124 @@
     }
   }
 
+  function setMacroProgress(kind, actualRaw, targetRaw, unit) {
+    const wrap = document.getElementById(kind + '-progress');
+    if (!wrap) return;
+    const targetNum = targetRaw === '' || targetRaw == null ? null : Number(targetRaw);
+    if (targetNum == null || Number.isNaN(targetNum) || targetNum <= 0) {
+      wrap.hidden = true;
+      return;
+    }
+    const actualEmpty = actualRaw === '' || actualRaw == null;
+    const actual = actualEmpty ? 0 : Number(actualRaw);
+    if (Number.isNaN(actual)) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    const pct = Math.min(100, Math.round((actual / targetNum) * 100));
+    const fill = document.getElementById(kind + '-fill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('over', actual >= targetNum);
+    const shown = actualEmpty ? 0 : actual;
+    document.getElementById(kind + '-progress-text').textContent =
+      `${shown} / ${targetNum}${unit ? ' ' + unit : ''}`;
+  }
+
+  function updateNutritionUI() {
+    const proteinEl = document.getElementById('protein');
+    const carbsEl = document.getElementById('carbs');
+    const fatEl = document.getElementById('fat');
+    if (!proteinEl) return;
+
+    const p = proteinEl.value;
+    const c = carbsEl.value;
+    const f = fatEl.value;
+    const cal = calcCalories(p, c, f);
+    const calVal = document.getElementById('calories-value');
+    calVal.textContent = cal == null ? '—' : String(cal);
+
+    const tp = currentDayTargets.targetProtein;
+    const tc = currentDayTargets.targetCarbs;
+    const tf = currentDayTargets.targetFat;
+    let tcal = currentDayTargets.targetCalories;
+    if (tcal === '' || tcal == null) {
+      const derived = calcCalories(tp, tc, tf);
+      tcal = derived == null ? '' : derived;
+    }
+
+    setMacroProgress('protein', p, tp, 'g');
+    setMacroProgress('carbs', c, tc, 'g');
+    setMacroProgress('fat', f, tf, 'g');
+    setMacroProgress('calories', cal == null ? '' : cal, tcal, 'kcal');
+
+    const hint = document.getElementById('nutrition-targets-hint');
+    const hasAnyTarget = [tp, tc, tf].some((v) => v !== '' && v != null);
+    if (!hasAnyTarget) {
+      hint.textContent = 'Set macro targets in Settings to see daily progress bars. Targets lock to each day when you first log it.';
+    } else {
+      const bits = [];
+      if (tp !== '' && tp != null) bits.push(`P ${tp}g`);
+      if (tc !== '' && tc != null) bits.push(`C ${tc}g`);
+      if (tf !== '' && tf != null) bits.push(`F ${tf}g`);
+      if (tcal !== '' && tcal != null) bits.push(`${tcal} kcal`);
+      hint.textContent = `This day’s targets: ${bits.join(' · ')}`;
+    }
+
+    const calTargetText = document.getElementById('calories-target-text');
+    if (tcal !== '' && tcal != null) {
+      calTargetText.hidden = false;
+      calTargetText.textContent = cal == null ? `target ${tcal}` : `/ ${tcal}`;
+    } else {
+      calTargetText.hidden = true;
+    }
+  }
+
+  function updateSettingsMacroCaloriesPreview() {
+    const p = document.getElementById('setting-protein-goal').value;
+    const c = document.getElementById('setting-carbs-goal').value;
+    const f = document.getElementById('setting-fat-goal').value;
+    const cal = calcCalories(p, c, f);
+    const el = document.getElementById('setting-macro-calories');
+    if (el) el.textContent = 'Target calories: ' + (cal == null ? '—' : String(cal));
+  }
+
+  function readMacroGoalsFromSettingsForm() {
+    function numOrNull(id) {
+      const v = document.getElementById(id).value;
+      return v === '' ? null : Number(v);
+    }
+    return {
+      proteinGoal: numOrNull('setting-protein-goal'),
+      carbsGoal: numOrNull('setting-carbs-goal'),
+      fatGoal: numOrNull('setting-fat-goal')
+    };
+  }
+
+  function saveMacroTargetsFromForm() {
+    const macros = readMacroGoalsFromSettingsForm();
+    settings.proteinGoal = macros.proteinGoal;
+    settings.carbsGoal = macros.carbsGoal;
+    settings.fatGoal = macros.fatGoal;
+    saveSettings();
+
+    const snap = snapshotTargetsFromSettings();
+    const today = todayKey();
+
+    // Changing settings updates today’s snapshot only — never past days
+    if (store.logs[today]) {
+      Object.assign(store.logs[today], snap);
+      saveStore();
+    }
+    if (currentDate === today) {
+      currentDayTargets = snap;
+      updateNutritionUI();
+    }
+
+    toast('Macro targets saved');
+    updateSettingsMacroCaloriesPreview();
+  }
+
   function formatNum(n) {
     return Number(n).toLocaleString();
   }
@@ -587,6 +801,13 @@
       settings.waterGoal != null ? settings.waterGoal : '';
     document.getElementById('setting-steps-goal').value =
       settings.stepsGoal != null ? settings.stepsGoal : '';
+    document.getElementById('setting-protein-goal').value =
+      settings.proteinGoal != null ? settings.proteinGoal : '';
+    document.getElementById('setting-carbs-goal').value =
+      settings.carbsGoal != null ? settings.carbsGoal : '';
+    document.getElementById('setting-fat-goal').value =
+      settings.fatGoal != null ? settings.fatGoal : '';
+    updateSettingsMacroCaloriesPreview();
     document.getElementById('settings-panel').hidden = false;
   }
 
@@ -659,6 +880,8 @@
       const bits = [];
       if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
       if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
+      const dayCal = calcCalories(log.protein, log.carbs, log.fat);
+      if (dayCal != null) bits.push(`${dayCal} kcal`);
       if (log.training) bits.push(`train: ${log.training}`);
       btn.innerHTML = `
         <div>
@@ -714,7 +937,10 @@
           if (data.settings) {
             settings = {
               waterGoal: data.settings.waterGoal ?? settings.waterGoal,
-              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal
+              stepsGoal: data.settings.stepsGoal ?? settings.stepsGoal,
+              proteinGoal: data.settings.proteinGoal ?? settings.proteinGoal,
+              carbsGoal: data.settings.carbsGoal ?? settings.carbsGoal,
+              fatGoal: data.settings.fatGoal ?? settings.fatGoal
             };
             saveSettings();
           }
@@ -730,7 +956,10 @@
           if (data.settings) {
             settings = {
               waterGoal: data.settings.waterGoal != null ? data.settings.waterGoal : null,
-              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null
+              stepsGoal: data.settings.stepsGoal != null ? data.settings.stepsGoal : null,
+              proteinGoal: data.settings.proteinGoal != null ? data.settings.proteinGoal : null,
+              carbsGoal: data.settings.carbsGoal != null ? data.settings.carbsGoal : null,
+              fatGoal: data.settings.fatGoal != null ? data.settings.fatGoal : null
             };
             saveSettings();
           }
@@ -807,6 +1036,9 @@
         }
       }
       if (e.target.id === 'water' || e.target.id === 'steps') updateProgressBars();
+      if (e.target.id === 'protein' || e.target.id === 'carbs' || e.target.id === 'fat') {
+        updateNutritionUI();
+      }
       scheduleSave();
     });
     form.addEventListener('change', (e) => {
@@ -877,6 +1109,38 @@
       saveSettings();
       updateProgressBars();
       toast('Goals saved');
+    });
+
+    ['setting-protein-goal', 'setting-carbs-goal', 'setting-fat-goal'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', updateSettingsMacroCaloriesPreview);
+    });
+    document.getElementById('btn-save-macro-targets').addEventListener('click', () => {
+      saveMacroTargetsFromForm();
+    });
+    document.getElementById('btn-apply-targets-today').addEventListener('click', () => {
+      // Save settings defaults first, then force today’s snapshot only
+      const macros = readMacroGoalsFromSettingsForm();
+      settings.proteinGoal = macros.proteinGoal;
+      settings.carbsGoal = macros.carbsGoal;
+      settings.fatGoal = macros.fatGoal;
+      saveSettings();
+      const snap = snapshotTargetsFromSettings();
+      const today = todayKey();
+      if (store.logs[today]) {
+        Object.assign(store.logs[today], snap);
+        saveStore();
+      }
+      if (currentDate === today) {
+        currentDayTargets = snap;
+        const data = readForm();
+        if (!isLogEmpty(data)) {
+          store.logs[today] = data;
+          saveStore();
+        }
+        updateNutritionUI();
+      }
+      toast('Applied current targets to today');
+      updateSettingsMacroCaloriesPreview();
     });
 
     document.getElementById('btn-export').addEventListener('click', exportJSON);

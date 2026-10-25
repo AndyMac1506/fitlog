@@ -137,6 +137,63 @@
           </div>
         </section>
 
+
+        <!-- Nutrition -->
+        <section class="card" data-section="nutrition">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">🍽️</span>
+            <span class="card-title">Nutrition</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="calories-display" id="calories-display" aria-live="polite">
+              <span class="calories-label">Calories</span>
+              <span class="calories-value" id="calories-value">—</span>
+              <span class="calories-target" id="calories-target-text" hidden></span>
+            </div>
+            <div class="progress-wrap nutrition-cal-progress" id="calories-progress" hidden>
+              <div class="progress-bar"><div class="progress-fill" id="calories-fill"></div></div>
+              <span class="progress-text" id="calories-progress-text"></span>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Protein</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="1" min="0" name="protein" id="protein" placeholder="—" />
+                  <span class="unit">g</span>
+                </div>
+                <div class="progress-wrap" id="protein-progress" hidden>
+                  <div class="progress-bar"><div class="progress-fill" id="protein-fill"></div></div>
+                  <span class="progress-text" id="protein-progress-text"></span>
+                </div>
+              </label>
+              <label class="field">
+                <span class="field-label">Carbs</span>
+                <div class="input-with-unit">
+                  <input type="number" inputmode="decimal" step="1" min="0" name="carbs" id="carbs" placeholder="—" />
+                  <span class="unit">g</span>
+                </div>
+                <div class="progress-wrap" id="carbs-progress" hidden>
+                  <div class="progress-bar"><div class="progress-fill" id="carbs-fill"></div></div>
+                  <span class="progress-text" id="carbs-progress-text"></span>
+                </div>
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Fat</span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="decimal" step="1" min="0" name="fat" id="fat" placeholder="—" />
+                <span class="unit">g</span>
+              </div>
+              <div class="progress-wrap" id="fat-progress" hidden>
+                <div class="progress-bar"><div class="progress-fill" id="fat-fill"></div></div>
+                <span class="progress-text" id="fat-progress-text"></span>
+              </div>
+            </label>
+            <p class="nutrition-day-targets-hint" id="nutrition-targets-hint"></p>
+          </div>
+        </section>
+
         <!-- Sleep -->
         <section class="card" data-section="sleep">
           <button type="button" class="card-header" aria-expanded="true" data-toggle>
@@ -523,6 +580,25 @@
             <input type="number" inputmode="numeric" min="0" id="setting-steps-goal" placeholder="e.g. 10000" />
           </label>
           <button type="button" class="btn primary" id="btn-save-settings">Save goals</button>
+        </section>
+        <section class="settings-block">
+          <h3>Macro targets</h3>
+          <p class="settings-note">Current defaults for new days. Each day stores its own snapshot so past days keep the targets that applied then.</p>
+          <label class="field">
+            <span class="field-label">Protein target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-protein-goal" placeholder="e.g. 200" />
+          </label>
+          <label class="field">
+            <span class="field-label">Carbs target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-carbs-goal" placeholder="e.g. 400" />
+          </label>
+          <label class="field">
+            <span class="field-label">Fat target (g)</span>
+            <input type="number" inputmode="decimal" min="0" step="1" id="setting-fat-goal" placeholder="e.g. 65" />
+          </label>
+          <p class="settings-note" id="setting-macro-calories">Target calories: —</p>
+          <button type="button" class="btn primary" id="btn-save-macro-targets">Save macro targets</button>
+          <button type="button" class="btn" id="btn-apply-targets-today" style="margin-top:8px">Apply current targets to today</button>
         </section>
         <section class="settings-block">
           <h3>Data</h3>

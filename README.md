@@ -34,6 +34,7 @@ Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress p
 - Water (oz) with quick +8/+16 buttons and optional goal progress
 - Sleep: bedtime, wake, auto duration (manual override), quality 1–10
 - Steps (optional goal progress), cardio minutes
+- Nutrition: protein / carbs / fat (g), live calories (4P+4C+9F), progress vs that day’s macro targets
 - Supplements: Morning / Noon / Night (Yes / No / N/A)
 - Training: Yes / No / Rest
 - Desire to train, energy in gym, energy outside gym, adherence (all 1–10)
@@ -44,10 +45,29 @@ Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress p
 - History calendar + recent list with fill %
 - **Score** screen: 7-day & 30-day consistency, habit hit rate, blend score, and logging streak
 - **Progress photos**: weekly Front / Side / Rear (IndexedDB, compressed JPEGs), date list, side-by-side compare with presets, opacity overlay, and “Prepare for bot review” zip pack
-- Settings: water & steps goals
+- Settings: water & steps goals; macro targets (historical per-day snapshots)
 - Export / import JSON (merge or replace) for daily logs
 - Dark-mode-friendly UI (follows system preference)
 - PWA: manifest, theme color, Apple web-app meta, icons, service worker
+
+
+## Nutrition & macro targets
+
+Daily **protein / carbs / fat** (grams) live on the main log. **Calories** are calculated as `4×protein + 4×carbs + 9×fat` and update as you type. If all three macros are empty, calories show as — (not 0).
+
+Macro **targets** are set under Settings → Macro targets (with derived target calories). Important:
+
+| Layer | What it stores |
+|--------|----------------|
+| **Settings** (`fitlog:settings:v1`) | Current defaults: `proteinGoal`, `carbsGoal`, `fatGoal` (plus water/steps goals) |
+| **Each daily log** | Snapshot fields `targetProtein`, `targetCarbs`, `targetFat`, `targetCalories` |
+
+- Opening/saving a day that has **no** snapshot yet copies the **current** settings targets onto that day once; they then stick.
+- Changing Settings updates the defaults **and today’s snapshot only** — past days are never rewritten.
+- **Apply current targets to today** refreshes today’s snapshot from Settings (still never all history).
+- When browsing a past day, progress bars use **that day’s** stored targets, not live Settings.
+
+Intake + day targets are included in JSON export/import.
 
 ## Progress photos
 
