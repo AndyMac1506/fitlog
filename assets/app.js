@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'fitlog:settings:v1';
 
   const FIELD_KEYS = [
-    'bodyweight', 'weighInTime', 'waist', 'water', 'bedtime', 'wakeTime',
+    'bodyweight', 'weighInTime', 'bmTiming', 'waist', 'water', 'bedtime', 'wakeTime',
     'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
     'protein', 'carbs', 'fat',
     'supplementsMorning', 'supplementsNoon', 'supplementsNight',
@@ -125,6 +125,7 @@
     return {
       bodyweight: '',
       weighInTime: '',
+      bmTiming: '',
       waist: '',
       water: '',
       bedtime: '',
@@ -770,6 +771,8 @@
 
     setVal('bodyweight', log.bodyweight);
     setVal('weighInTime', log.weighInTime);
+    setVal('bmTiming', log.bmTiming || '');
+    syncBmChips();
     setVal('waist', isFridayKey(dateKey) ? log.waist : '');
     setVal('water', log.water);
     setVal('bedtime', log.bedtime);
@@ -809,6 +812,14 @@
     updateDateNav();
   }
 
+  function syncBmChips() {
+    const v = (document.getElementById('bmTiming') || {}).value || '';
+    ['pre', 'post'].forEach((k) => {
+      const el = document.getElementById('bm-' + k);
+      if (el) { el.checked = v === k; el.parentElement.classList.toggle('on', v === k); }
+    });
+  }
+
   function setVal(id, value) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -828,6 +839,7 @@
     return {
       bodyweight: document.getElementById('bodyweight').value,
       weighInTime: document.getElementById('weighInTime').value,
+      bmTiming: document.getElementById('bmTiming').value,
       waist: waistValue,
       water: document.getElementById('water').value,
       bedtime: document.getElementById('bedtime').value,
@@ -1170,7 +1182,7 @@
       btn.type = 'button';
       btn.className = 'history-item';
       const bits = [];
-      if (log.bodyweight) bits.push(`${log.bodyweight} lbs`);
+      if (log.bodyweight) bits.push(`${log.bodyweight} lbs${log.bmTiming ? ` (${log.bmTiming} BM)` : ''}`);
       if (log.waist) bits.push(`waist ${log.waist} in`);
       if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
       const dayCal = calcCalories(log.protein, log.carbs, log.fat);
@@ -1321,6 +1333,11 @@
 
     const form = document.getElementById('log-form');
     form.addEventListener('input', (e) => {
+      if (e.target.dataset && e.target.dataset.bm) {
+        const k = e.target.dataset.bm;
+        document.getElementById('bmTiming').value = e.target.checked ? k : '';
+        syncBmChips();
+      }
       if (e.target.id === 'sleepDuration') {
         durationManual = true;
         updateDurationHint();
