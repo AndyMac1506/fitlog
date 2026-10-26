@@ -6,7 +6,7 @@
 
   const FIELD_KEYS = [
     'bodyweight', 'weighInTime', 'bmTiming', 'waist', 'water', 'bedtime', 'wakeTime',
-    'sleepDuration', 'sleepDurationManual', 'sleepQuality', 'steps', 'cardio',
+    'sleepDuration', 'sleepDurationManual', 'sleepScore', 'sleepQuality', 'steps', 'cardio',
     'protein', 'carbs', 'fat',
     'supplementsMorning', 'supplementsNoon', 'supplementsNight',
     'training', 'desireToTrain', 'energyInGym', 'energyOutsideGym',
@@ -132,6 +132,7 @@
       wakeTime: '',
       sleepDuration: '',
       sleepDurationManual: false,
+      sleepScore: '',
       sleepQuality: '',
       steps: '',
       cardio: '',
@@ -230,7 +231,7 @@
 
   function fillScore(log) {
     const tracked = [
-      'bodyweight', 'waist', 'water', 'bedtime', 'wakeTime', 'sleepQuality',
+      'bodyweight', 'waist', 'water', 'bedtime', 'wakeTime', 'sleepScore',
       'steps', 'cardio', 'protein', 'carbs', 'fat',
       'supplementsMorning', 'supplementsNoon', 'supplementsNight',
       'training', 'desireToTrain', 'energyInGym',
@@ -661,8 +662,10 @@
   function renderCharts() {
     const weightAll = collectSeries('bodyweight');
     const waistAll = collectSeries('waist', { fridayOnly: true });
+    const sleepAll = collectSeries('sleepDuration');
     const weight = filterSeriesByRange(weightAll, chartRange);
     const waist = filterSeriesByRange(waistAll, chartRange);
+    const sleep = filterSeriesByRange(sleepAll, chartRange);
 
     const wStats = seriesStats(weight);
     setStat('weight-stat-latest', wStats.latest == null ? '—' : Number(wStats.latest).toFixed(1));
@@ -684,10 +687,23 @@
     setStat('waist-stat-low', zStats.low == null ? '—' : Number(zStats.low).toFixed(1));
     setStat('waist-stat-high', zStats.high == null ? '—' : Number(zStats.high).toFixed(1));
 
+    const sStats = seriesStats(sleep);
+    setStat('sleep-stat-latest', sStats.latest == null ? '—' : Number(sStats.latest).toFixed(2));
+    setStat(
+      'sleep-stat-change',
+      formatSigned(sStats.change, 2),
+      sStats.change == null ? null : (sStats.change > 0 ? 'up' : sStats.change < 0 ? 'down' : null)
+    );
+    setStat('sleep-stat-low', sStats.low == null ? '—' : Number(sStats.low).toFixed(2));
+    setStat('sleep-stat-high', sStats.high == null ? '—' : Number(sStats.high).toFixed(2));
+
     const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3dd6c6';
     const warn = getComputedStyle(document.documentElement).getPropertyValue('--warn').trim() || '#e6c07b';
+    const sleepColor = getComputedStyle(document.documentElement).getPropertyValue('--good').trim() || '#7fd99a';
     drawLineChart(document.getElementById('weight-chart'), weight, accent);
     drawLineChart(document.getElementById('waist-chart'), waist, warn);
+    const sleepCanvas = document.getElementById('sleep-chart');
+    if (sleepCanvas) drawLineChart(sleepCanvas, sleep, sleepColor);
 
     document.querySelectorAll('[data-chart-range]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.chartRange === chartRange);
@@ -778,7 +794,7 @@
     setVal('bedtime', log.bedtime);
     setVal('wakeTime', log.wakeTime);
     setVal('sleepDuration', log.sleepDuration);
-    setVal('sleepQuality', log.sleepQuality);
+    setVal('sleepScore', log.sleepScore != null && log.sleepScore !== '' ? log.sleepScore : '');
     setVal('steps', log.steps);
     setVal('cardio', log.cardio);
     setVal('protein', log.protein);
@@ -846,7 +862,8 @@
       wakeTime: document.getElementById('wakeTime').value,
       sleepDuration: document.getElementById('sleepDuration').value,
       sleepDurationManual: durationManual,
-      sleepQuality: document.getElementById('sleepQuality').value,
+      sleepScore: document.getElementById('sleepScore').value,
+      sleepQuality: existing.sleepQuality != null ? existing.sleepQuality : '',
       steps: document.getElementById('steps').value,
       cardio: document.getElementById('cardio').value,
       protein: document.getElementById('protein').value,
@@ -1184,6 +1201,8 @@
       const bits = [];
       if (log.bodyweight) bits.push(`${log.bodyweight} lbs${log.bmTiming ? ` (${log.bmTiming} BM)` : ''}`);
       if (log.waist) bits.push(`waist ${log.waist} in`);
+      if (log.sleepDuration) bits.push(`${log.sleepDuration} hrs sleep`);
+      if (log.sleepScore !== '' && log.sleepScore != null) bits.push(`Sleep Score ${log.sleepScore}`);
       if (log.steps) bits.push(`${formatNum(log.steps)} steps`);
       const dayCal = calcCalories(log.protein, log.carbs, log.fat);
       if (dayCal != null) bits.push(`${dayCal} kcal`);

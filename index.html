@@ -120,6 +120,42 @@
           </div>
         </section>
 
+        <!-- Sleep -->
+        <section class="card" data-section="sleep">
+          <button type="button" class="card-header" aria-expanded="true" data-toggle>
+            <span class="card-icon">😴</span>
+            <span class="card-title">Sleep</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div class="card-body">
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Bedtime</span>
+                <input type="time" name="bedtime" id="bedtime" />
+              </label>
+              <label class="field">
+                <span class="field-label">Wake time</span>
+                <input type="time" name="wakeTime" id="wakeTime" />
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Duration <span class="hint" id="duration-hint">(auto)</span></span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="decimal" step="0.25" min="0" max="24" name="sleepDuration" id="sleepDuration" placeholder="—" />
+                <span class="unit">hrs</span>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field-label">Sleep Score</span>
+              <div class="input-with-unit">
+                <input type="number" inputmode="numeric" step="1" min="0" max="100" name="sleepScore" id="sleepScore" placeholder="from Sleep Cycle" />
+              </div>
+              <p class="settings-note" style="margin-top:8px">Enter from Sleep Cycle (auto-sync isn’t available in this web app).</p>
+            </label>
+          </div>
+        </section>
+
+
         <!-- Hydration & Movement -->
         <section class="card" data-section="movement">
           <button type="button" class="card-header" aria-expanded="true" data-toggle>
@@ -216,41 +252,6 @@
               </div>
             </label>
             <p class="nutrition-day-targets-hint" id="nutrition-targets-hint"></p>
-          </div>
-        </section>
-
-        <!-- Sleep -->
-        <section class="card" data-section="sleep">
-          <button type="button" class="card-header" aria-expanded="true" data-toggle>
-            <span class="card-icon">😴</span>
-            <span class="card-title">Sleep</span>
-            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="card-body">
-            <div class="field-row">
-              <label class="field">
-                <span class="field-label">Bedtime</span>
-                <input type="time" name="bedtime" id="bedtime" />
-              </label>
-              <label class="field">
-                <span class="field-label">Wake time</span>
-                <input type="time" name="wakeTime" id="wakeTime" />
-              </label>
-            </div>
-            <label class="field">
-              <span class="field-label">Duration <span class="hint" id="duration-hint">(auto)</span></span>
-              <div class="input-with-unit">
-                <input type="number" inputmode="decimal" step="0.25" min="0" max="24" name="sleepDuration" id="sleepDuration" placeholder="—" />
-                <span class="unit">hrs</span>
-              </div>
-            </label>
-            <label class="field">
-              <span class="field-label">Sleep quality</span>
-              <div class="scale" data-scale="sleepQuality">
-                <input type="hidden" name="sleepQuality" id="sleepQuality" value="" />
-                <div class="scale-btns" role="group" aria-label="Sleep quality 1 to 10"></div>
-              </div>
-            </label>
           </div>
         </section>
 
@@ -611,6 +612,23 @@
             <p class="chart-empty" id="waist-chart-empty" hidden>No Friday waist entries yet</p>
           </div>
           <p class="settings-note" style="margin-top:10px">Waist is logged on Friday mornings from the Body section.</p>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-card-head">
+            <h3>Sleep duration</h3>
+            <span class="chart-unit">hrs</span>
+          </div>
+          <div class="chart-stats" id="sleep-chart-stats">
+            <div class="chart-stat"><span class="cs-label">Latest</span><span class="cs-value" id="sleep-stat-latest">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Change</span><span class="cs-value" id="sleep-stat-change">—</span></div>
+            <div class="chart-stat"><span class="cs-label">Low</span><span class="cs-value" id="sleep-stat-low">—</span></div>
+            <div class="chart-stat"><span class="cs-label">High</span><span class="cs-value" id="sleep-stat-high">—</span></div>
+          </div>
+          <div class="chart-canvas-wrap">
+            <canvas id="sleep-chart" width="400" height="220" aria-label="Sleep duration over time"></canvas>
+            <p class="chart-empty" id="sleep-chart-empty" hidden>No sleep duration entries in this range</p>
+          </div>
         </section>
       </div>
     </aside>

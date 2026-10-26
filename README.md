@@ -32,7 +32,7 @@ Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress p
 - One log entry per calendar day
 - Bodyweight (lbs) + weigh-in time
 - Water (oz) with quick +8/+16 buttons and optional goal progress
-- Sleep: bedtime, wake, auto duration (manual override), quality 1–10
+- Sleep: bedtime, wake, auto duration (manual override), Sleep Score (from Sleep Cycle; manual entry)
 - Steps (optional goal progress), cardio minutes
 - Nutrition: protein / carbs / fat (g), live calories (4P+4C+9F), progress vs that day’s macro targets
 - Supplements: Morning / Noon / Night (Yes / No / N/A)
@@ -44,7 +44,7 @@ Open `fitness-tracker-standalone.html` in Safari for daily logging. **Progress p
 - Debounced auto-save with “Saved” indicator
 - History calendar + recent list with fill %
 - **Score** screen: 7-day & 30-day consistency, habit hit rate, blend score, and logging streak
-- **Charts**: bodyweight over time (7d / 30d / 90d / all) and Friday waist trend
+- **Charts**: bodyweight, sleep duration, and Friday waist over time (7d / 30d / 90d / all)
 - Friday morning **waist (in)** on the Body card (Fridays only; other days show last Friday’s value)
 - **Progress photos**: weekly Front / Side / Rear (IndexedDB, compressed JPEGs), date list, side-by-side compare with presets, opacity overlay, and “Prepare for bot review” zip pack
 - Settings: water & steps goals; macro targets (historical per-day snapshots)
@@ -93,6 +93,7 @@ Open the bar-chart icon in the header.
 | Piece | Detail |
 |--------|--------|
 | **Bodyweight** | Line chart of daily `bodyweight` (lbs). Skips empty days. Default range **30d**; toggles for 7d / 30d / 90d / all |
+| **Sleep duration** | Line chart of daily `sleepDuration` (hours). Same range toggles as bodyweight |
 | **Waist** | Line chart of Friday morning `waist` (inches). Entered only when the selected log day is a **Friday**; other days show the last recorded Friday waist as read-only context |
 | **Stats** | Latest, change over the selected range, low, and high |
 | **Storage** | `waist` lives on that Friday’s log entry in `fitlog:v1` (localStorage) and is included in JSON export/import |
@@ -134,7 +135,7 @@ fitness-tracker/
 - Bodyweight: **lbs**
 - Waist: **inches** (Friday mornings)
 - Water: **oz**
-- Sleep duration: hours (auto from bedtime → wake, including overnight)
+- Sleep duration: hours (auto from bedtime → wake, including overnight); Sleep Score: number from Sleep Cycle (typically 0–100)
 - Scales: 1–10 (tap again to clear)
 - Empty fields are fine; nothing is required each day
 
